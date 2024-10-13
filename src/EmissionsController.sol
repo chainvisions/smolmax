@@ -71,7 +71,28 @@ contract EmissionsController {
     function vote(
         address[] calldata _vaults,
         uint256[] calldata _weights
-    ) external {}
+    ) external {
+        // Validate vote.
+        uint256 weightSum;
+        for (uint256 i; i < _vaults.length; ) {
+            weightSum += _weights[i];
+            unchecked {
+                ++i;
+            }
+        }
+        _require(weightSum == 10000, Errors.MALFORMED_VOTE);
+
+        // ^ So like, it is typically common practice to also check lengths. But uhh...
+        // I kinda don't give a fuck and will cheap out here. Why? Well here is my logic on record:
+        // 1) If len(_vaults) > len(_weights) then it'll automatically revert due to accessing out of bounds.
+        // 2) If len(_weights) > len(_vaults) then well it could *theoretically* end up valid. This would, however,
+        // have to mean that all of the weights in those few vaults add up to 10000, which is what we want anyways.
+        // It'd also still allocate to whatever specified vaults, there'd just have been some useless weights. Who cares. It's their wasted gas.
+        // So all in all, it's a pretty easy saving avoiding all that check bs. 99% of people would use a UI anyways and *not* fuck up.
+        // So yeah 👍
+
+        // Calculate weight to allocate and cast vote.
+    }
 
     /// @notice Closes the current epoch and allocates the bonus weights.
     function close() external {
