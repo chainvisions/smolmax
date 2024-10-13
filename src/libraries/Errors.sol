@@ -127,5 +127,11 @@ library Errors {
 
     // Router
     uint256 internal constant NOT_WETH = 23;
-}
 
+    // Emissions Controller
+    uint256 internal constant VAULT_NOT_EMITTABLE = 40;
+    uint256 internal constant MALFORMED_VOTE = 41;
+    uint256 internal constant EPOCH_NOT_COMPLETE = 42;
+
+    uint256 internal constant NICE_TRY = 69;
+}
