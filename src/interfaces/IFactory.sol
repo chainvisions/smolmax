@@ -2,7 +2,7 @@ pragma solidity >=0.5.0;
 
 interface IFactory {
 	event LendingPoolInitialized(address indexed uniswapV2Pair, address indexed token0, address indexed token1,
-		address collateral, address borrowable0, address borrowable1, uint lendingPoolId);
+		address collateral, address borrowable0, address borrowable1, uint256 lendingPoolId);
 	event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
 	event NewAdmin(address oldAdmin, address newAdmin);
 	event NewReservesPendingAdmin(address oldReservesPendingAdmin, address newReservesPendingAdmin);

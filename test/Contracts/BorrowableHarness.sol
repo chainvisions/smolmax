@@ -25,7 +25,7 @@ contract BorrowableHarness is Borrowable {
 		return super.borrowBalance(borrower);
 	}
 	
-	function setBorrowBalanceHarness(address borrower, uint amount) external {
+	function setBorrowBalanceHarness(address borrower, uint256 amount) external {
 		useMockBorrowBalance = true;
 		_borrowBalance[borrower] = amount;
 	}
@@ -39,11 +39,11 @@ contract BorrowableHarness is Borrowable {
 		borrowIndex = _borrowIndex;
 	}
 	
-	function seizeHarness(address collateral, address liquidator, address borrower, uint repayAmount) external returns (uint) {
+	function seizeHarness(address collateral, address liquidator, address borrower, uint256 repayAmount) external returns (uint) {
 		return ICollateral(collateral).seize(liquidator, borrower, repayAmount);
 	}
 	
-	function setTotalBalance(uint _totalBalance) public {
+	function setTotalBalance(uint256 _totalBalance) public {
 		totalBalance = _totalBalance;
 	}
 	
@@ -51,7 +51,7 @@ contract BorrowableHarness is Borrowable {
 		totalBorrows = _totalBorrows;
 	}
 	
-	function setTotalSupply(uint _totalSupply) public {
+	function setTotalSupply(uint256 _totalSupply) public {
 		totalSupply = _totalSupply;
 	}
 	
@@ -59,7 +59,7 @@ contract BorrowableHarness is Borrowable {
 		borrowRate = _borrowRate;
 	}
 	
-	function setReserveFactor(uint _reserveFactor) public {
+	function setReserveFactor(uint256 _reserveFactor) public {
 		reserveFactor = _reserveFactor;
 	}
 	
@@ -67,7 +67,7 @@ contract BorrowableHarness is Borrowable {
 	function getBlockTimestamp() public view returns (uint32) {
 		return _blockTimestamp;
 	}
-	function setBlockTimestamp(uint blockTimestamp) public {
+	function setBlockTimestamp(uint256 blockTimestamp) public {
 		_blockTimestamp = uint32(blockTimestamp % 2**32);
 	}
 	

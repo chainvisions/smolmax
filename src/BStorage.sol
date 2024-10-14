@@ -33,7 +33,7 @@ contract BStorage {
     uint32 public accrualTimestamp = uint32(block.timestamp % 2 ** 32);
 
     /// @notice Latest exchange rate of the Borrowable.
-    uint public exchangeRateLast;
+    uint256 public exchangeRateLast;
 
     /// @notice Current borrow rate.
     uint48 public borrowRate;
@@ -56,4 +56,3 @@ contract BStorage {
     /// @notice Current borrow tracker contract.
     address public borrowTracker;
 }
-

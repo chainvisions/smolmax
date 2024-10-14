@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 interface IVault {
-    event Transfer(address indexed from, address indexed to, uint value);
-    event Approval(address indexed owner, address indexed spender, uint value);
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 
     function name() external pure returns (string memory);
 
@@ -20,14 +20,14 @@ interface IVault {
         address spender
     ) external view returns (uint);
 
-    function approve(address spender, uint value) external returns (bool);
+    function approve(address spender, uint256 value) external returns (bool);
 
-    function transfer(address to, uint value) external returns (bool);
+    function transfer(address to, uint256 value) external returns (bool);
 
     function transferFrom(
         address from,
         address to,
-        uint value
+        uint256 value
     ) external returns (bool);
 
     function DOMAIN_SEPARATOR() external view returns (bytes32);
@@ -39,8 +39,8 @@ interface IVault {
     function permit(
         address owner,
         address spender,
-        uint value,
-        uint deadline,
+        uint256 value,
+        uint256 deadline,
         uint8 v,
         bytes32 r,
         bytes32 s
@@ -49,16 +49,16 @@ interface IVault {
     event Mint(
         address indexed sender,
         address indexed minter,
-        uint mintAmount,
-        uint mintTokens
+        uint256 mintAmount,
+        uint256 mintTokens
     );
     event Redeem(
         address indexed sender,
         address indexed redeemer,
-        uint redeemAmount,
-        uint redeemTokens
+        uint256 redeemAmount,
+        uint256 redeemTokens
     );
-    event Sync(uint totalBalance);
+    event Sync(uint256 totalBalance);
 
     function underlying() external view returns (address);
 
@@ -70,9 +70,9 @@ interface IVault {
 
     function exchangeRate() external returns (uint);
 
-    function mint(address minter) external returns (uint mintTokens);
+    function mint(address minter) external returns (uint256 mintTokens);
 
-    function redeem(address redeemer) external returns (uint redeemAmount);
+    function redeem(address redeemer) external returns (uint256 redeemAmount);
 
     function skim(address to) external;
 

@@ -28,7 +28,7 @@ contract Router is IRouter, IImpermaxCallee {
     /// @notice WETH contract.
     address public immutable override WETH;
 
-    modifier ensure(uint deadline) {
+    modifier ensure(uint256 deadline) {
         _require(deadline >= block.timestamp, Errors.EXPIRED);
         _;
     }
@@ -55,10 +55,10 @@ contract Router is IRouter, IImpermaxCallee {
     function _mint(
         address poolToken,
         address token,
-        uint amount,
+        uint256 amount,
         address from,
         address to
-    ) internal virtual returns (uint tokens) {
+    ) internal virtual returns (uint256 tokens) {
         if (from == address(this)) token.safeTransfer(poolToken, amount);
         else token.safeTransferFrom(from, poolToken, amount);
         tokens = IPoolToken(poolToken).mint(to);
@@ -66,10 +66,10 @@ contract Router is IRouter, IImpermaxCallee {
 
     function mint(
         address poolToken,
-        uint amount,
+        uint256 amount,
         address to,
-        uint deadline
-    ) external virtual override ensure(deadline) returns (uint tokens) {
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256 tokens) {
         return
             _mint(
                 poolToken,
@@ -83,7 +83,7 @@ contract Router is IRouter, IImpermaxCallee {
     function mintETH(
         address poolToken,
         address to,
-        uint deadline
+        uint256 deadline
     )
         external
         payable
@@ -91,7 +91,7 @@ contract Router is IRouter, IImpermaxCallee {
         override
         ensure(deadline)
         checkETH(poolToken)
-        returns (uint tokens)
+        returns (uint256 tokens)
     {
         IWETH(WETH).deposit{value: msg.value}();
         return _mint(poolToken, WETH, msg.value, address(this), to);
@@ -99,11 +99,11 @@ contract Router is IRouter, IImpermaxCallee {
 
     function mintCollateral(
         address poolToken,
-        uint amount,
+        uint256 amount,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes calldata permitData
-    ) external virtual override ensure(deadline) returns (uint tokens) {
+    ) external virtual override ensure(deadline) returns (uint256 tokens) {
         address underlying = IPoolToken(poolToken).underlying();
         if (isStakedLPToken(underlying)) {
             address uniswapV2Pair = IVault(underlying).underlying();
@@ -121,13 +121,13 @@ contract Router is IRouter, IImpermaxCallee {
 
     function redeem(
         address poolToken,
-        uint tokens,
+        uint256 tokens,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes memory permitData
-    ) public virtual override ensure(deadline) returns (uint amount) {
+    ) public virtual override ensure(deadline) returns (uint256 amount) {
         _permit(poolToken, tokens, deadline, permitData);
-        uint tokensBalance = IERC20(poolToken).balanceOf(msg.sender);
+        uint256 tokensBalance = IERC20(poolToken).balanceOf(msg.sender);
         tokens = tokens < tokensBalance ? tokens : tokensBalance;
         IPoolToken(poolToken).transferFrom(msg.sender, poolToken, tokens);
         address underlying = IPoolToken(poolToken).underlying();
@@ -141,9 +141,9 @@ contract Router is IRouter, IImpermaxCallee {
 
     function redeemETH(
         address poolToken,
-        uint tokens,
+        uint256 tokens,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes memory permitData
     )
         public
@@ -151,10 +151,10 @@ contract Router is IRouter, IImpermaxCallee {
         override
         ensure(deadline)
         checkETH(poolToken)
-        returns (uint amountETH)
+        returns (uint256 amountETH)
     {
         _permit(poolToken, tokens, deadline, permitData);
-        uint tokensBalance = IERC20(poolToken).balanceOf(msg.sender);
+        uint256 tokensBalance = IERC20(poolToken).balanceOf(msg.sender);
         tokens = tokens < tokensBalance ? tokens : tokensBalance;
         IPoolToken(poolToken).transferFrom(msg.sender, poolToken, tokens);
         amountETH = IPoolToken(poolToken).redeem(address(this));
@@ -166,9 +166,9 @@ contract Router is IRouter, IImpermaxCallee {
 
     function borrow(
         address borrowable,
-        uint amount,
+        uint256 amount,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes memory permitData
     ) public virtual override ensure(deadline) {
         _borrowPermit(borrowable, amount, deadline, permitData);
@@ -177,9 +177,9 @@ contract Router is IRouter, IImpermaxCallee {
 
     function borrowETH(
         address borrowable,
-        uint amountETH,
+        uint256 amountETH,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes memory permitData
     ) public virtual override ensure(deadline) checkETH(borrowable) {
         borrow(borrowable, amountETH, address(this), deadline, permitData);
@@ -191,20 +191,22 @@ contract Router is IRouter, IImpermaxCallee {
 
     function _repayAmount(
         address borrowable,
-        uint amountMax,
+        uint256 amountMax,
         address borrower
-    ) internal virtual returns (uint amount) {
+    ) internal virtual returns (uint256 amount) {
         IBorrowable(borrowable).accrueInterest();
-        uint borrowedAmount = IBorrowable(borrowable).borrowBalance(borrower);
+        uint256 borrowedAmount = IBorrowable(borrowable).borrowBalance(
+            borrower
+        );
         amount = amountMax < borrowedAmount ? amountMax : borrowedAmount;
     }
 
     function repay(
         address borrowable,
-        uint amountMax,
+        uint256 amountMax,
         address borrower,
-        uint deadline
-    ) external virtual override ensure(deadline) returns (uint amount) {
+        uint256 deadline
+    ) external virtual override ensure(deadline) returns (uint256 amount) {
         amount = _repayAmount(borrowable, amountMax, borrower);
         IBorrowable(borrowable).underlying().safeTransferFrom(
             msg.sender,
@@ -217,7 +219,7 @@ contract Router is IRouter, IImpermaxCallee {
     function repayETH(
         address borrowable,
         address borrower,
-        uint deadline
+        uint256 deadline
     )
         external
         payable
@@ -225,7 +227,7 @@ contract Router is IRouter, IImpermaxCallee {
         override
         ensure(deadline)
         checkETH(borrowable)
-        returns (uint amountETH)
+        returns (uint256 amountETH)
     {
         amountETH = _repayAmount(borrowable, msg.value, borrower);
         IWETH(WETH).deposit{value: amountETH}();
@@ -240,16 +242,16 @@ contract Router is IRouter, IImpermaxCallee {
 
     function liquidate(
         address borrowable,
-        uint amountMax,
+        uint256 amountMax,
         address borrower,
         address to,
-        uint deadline
+        uint256 deadline
     )
         external
         virtual
         override
         ensure(deadline)
-        returns (uint amount, uint seizeTokens)
+        returns (uint256 amount, uint256 seizeTokens)
     {
         amount = _repayAmount(borrowable, amountMax, borrower);
         IBorrowable(borrowable).underlying().safeTransferFrom(
@@ -264,7 +266,7 @@ contract Router is IRouter, IImpermaxCallee {
         address borrowable,
         address borrower,
         address to,
-        uint deadline
+        uint256 deadline
     )
         external
         payable
@@ -272,7 +274,7 @@ contract Router is IRouter, IImpermaxCallee {
         override
         ensure(deadline)
         checkETH(borrowable)
-        returns (uint amountETH, uint seizeTokens)
+        returns (uint256 amountETH, uint256 seizeTokens)
     {
         amountETH = _repayAmount(borrowable, msg.value, borrower);
         IWETH(WETH).deposit{value: amountETH}();
@@ -287,8 +289,8 @@ contract Router is IRouter, IImpermaxCallee {
 
     function _leverage(
         address underlying,
-        uint amountA,
-        uint amountB,
+        uint256 amountA,
+        uint256 amountB,
         address to
     ) internal virtual {
         address borrowableA = getBorrowable(underlying, 0);
@@ -334,12 +336,12 @@ contract Router is IRouter, IImpermaxCallee {
 
     function leverage(
         address underlying,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes calldata permitDataA,
         bytes calldata permitDataB
     ) external virtual override ensure(deadline) {
@@ -356,7 +358,7 @@ contract Router is IRouter, IImpermaxCallee {
             permitDataB
         );
         address uniswapV2Pair = getUniswapV2Pair(underlying);
-        (uint amountA, uint amountB) = _optimalLiquidity(
+        (uint256 amountA, uint256 amountB) = _optimalLiquidity(
             uniswapV2Pair,
             amountADesired,
             amountBDesired,
@@ -368,8 +370,8 @@ contract Router is IRouter, IImpermaxCallee {
 
     function _addLiquidityAndMint(
         address underlying,
-        uint amountA,
-        uint amountB,
+        uint256 amountA,
+        uint256 amountB,
         address to
     ) internal virtual {
         (
@@ -399,21 +401,21 @@ contract Router is IRouter, IImpermaxCallee {
 
     function deleverage(
         address underlying,
-        uint redeemTokens,
-        uint amountAMin,
-        uint amountBMin,
-        uint deadline,
+        uint256 redeemTokens,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        uint256 deadline,
         bytes calldata permitData
     ) external virtual override ensure(deadline) {
         address collateral = getCollateral(underlying);
         _permit(collateral, redeemTokens, deadline, permitData);
-        uint tokensBalance = IERC20(collateral).balanceOf(msg.sender);
+        uint256 tokensBalance = IERC20(collateral).balanceOf(msg.sender);
         redeemTokens = redeemTokens < tokensBalance
             ? redeemTokens
             : tokensBalance;
-        require(redeemTokens > 0, "ImpermaxRouter: REDEEM_ZERO");
-        uint exchangeRate = ICollateral(collateral).exchangeRate();
-        uint redeemAmount = (((redeemTokens - 1) * exchangeRate) / 1e18);
+        require(redeemTokens > 0, "SmolmaxRouter: REDEEM_ZERO");
+        uint256 exchangeRate = ICollateral(collateral).exchangeRate();
+        uint256 redeemAmount = (((redeemTokens - 1) * exchangeRate) / 1e18);
         bytes memory redeemData = abi.encode(
             CalleeData({
                 callType: CallType.REMOVE_LIQ_AND_REPAY,
@@ -441,10 +443,10 @@ contract Router is IRouter, IImpermaxCallee {
     function _removeLiqAndRepay(
         address underlying,
         address borrower,
-        uint redeemTokens,
-        uint redeemAmount,
-        uint amountAMin,
-        uint amountBMin
+        uint256 redeemTokens,
+        uint256 redeemAmount,
+        uint256 amountAMin,
+        uint256 amountBMin
     ) internal virtual {
         (
             address collateral,
@@ -459,16 +461,15 @@ contract Router is IRouter, IImpermaxCallee {
         //TransferHelper.safeTransfer(underlying, underlying, redeemAmount);
         if (isStakedLPToken(underlying))
             IVault(underlying).redeem(uniswapV2Pair);
-        (uint amountAMax, uint amountBMax) = IUniswapV2Pair(uniswapV2Pair).burn(
-            address(this)
-        );
+        (uint256 amountAMax, uint256 amountBMax) = IUniswapV2Pair(uniswapV2Pair)
+            .burn(address(this));
         require(
             amountAMax >= amountAMin,
-            "ImpermaxRouter: INSUFFICIENT_A_AMOUNT"
+            "SmolmaxRouter: INSUFFICIENT_A_AMOUNT"
         );
         require(
             amountBMax >= amountBMin,
-            "ImpermaxRouter: INSUFFICIENT_B_AMOUNT"
+            "SmolmaxRouter: INSUFFICIENT_B_AMOUNT"
         );
         // repay and refund
         _repayAndRefund(borrowableA, tokenA, borrower, amountAMax);
@@ -485,15 +486,15 @@ contract Router is IRouter, IImpermaxCallee {
         address borrowable,
         address token,
         address borrower,
-        uint amountMax
+        uint256 amountMax
     ) internal virtual {
         //repay
-        uint amount = _repayAmount(borrowable, amountMax, borrower);
+        uint256 amount = _repayAmount(borrowable, amountMax, borrower);
         token.safeTransfer(borrowable, amount);
         IBorrowable(borrowable).borrow(borrower, address(0), 0, new bytes(0));
         // refund excess
         if (amountMax > amount) {
-            uint refundAmount = amountMax - amount;
+            uint256 refundAmount = amountMax - amount;
             if (token == WETH) {
                 IWETH(WETH).withdraw(refundAmount);
                 borrower.safeTransferETH(refundAmount);
@@ -501,7 +502,7 @@ contract Router is IRouter, IImpermaxCallee {
         }
     }
 
-    /*** Impermax Callee ***/
+    /*** Smolmax Callee ***/
 
     enum CallType {
         ADD_LIQUIDITY_AND_MINT,
@@ -515,28 +516,28 @@ contract Router is IRouter, IImpermaxCallee {
         bytes data;
     }
     struct AddLiquidityAndMintCalldata {
-        uint amountA;
-        uint amountB;
+        uint256 amountA;
+        uint256 amountB;
         address to;
     }
     struct BorrowBCalldata {
         address borrower;
         address receiver;
-        uint borrowAmount;
+        uint256 borrowAmount;
         bytes data;
     }
     struct RemoveLiqAndRepayCalldata {
         address borrower;
-        uint redeemTokens;
-        uint redeemAmount;
-        uint amountAMin;
-        uint amountBMin;
+        uint256 redeemTokens;
+        uint256 redeemAmount;
+        uint256 amountAMin;
+        uint256 amountBMin;
     }
 
     function impermaxBorrow(
         address sender,
         address borrower,
-        uint borrowAmount,
+        uint256 borrowAmount,
         bytes calldata data
     ) external virtual override {
         borrower;
@@ -546,11 +547,11 @@ contract Router is IRouter, IImpermaxCallee {
             calleeData.underlying,
             calleeData.borrowableIndex
         );
-        // only succeeds if called by a borrowable and if that borrowable has been called by the router
-        require(sender == address(this), "ImpermaxRouter: SENDER_NOT_ROUTER");
+        /// @dev only succeeds if called by a borrowable and if that borrowable has been called by the router
+        require(sender == address(this), "SmolmaxRouter: SENDER_NOT_ROUTER");
         require(
             msg.sender == declaredCaller,
-            "ImpermaxRouter: UNAUTHORIZED_CALLER"
+            "SmolmaxRouter: UNAUTHORIZED_CALLER"
         );
         if (calleeData.callType == CallType.ADD_LIQUIDITY_AND_MINT) {
             AddLiquidityAndMintCalldata memory d = abi.decode(
@@ -580,17 +581,17 @@ contract Router is IRouter, IImpermaxCallee {
 
     function impermaxRedeem(
         address sender,
-        uint redeemAmount,
+        uint256 redeemAmount,
         bytes calldata data
     ) external virtual override {
         redeemAmount;
         CalleeData memory calleeData = abi.decode(data, (CalleeData));
         address declaredCaller = getCollateral(calleeData.underlying);
-        // only succeeds if called by a collateral and if that collateral has been called by the router
-        require(sender == address(this), "ImpermaxRouter: SENDER_NOT_ROUTER");
+        /// @dev only succeeds if called by a collateral and if that collateral has been called by the router
+        require(sender == address(this), "SmolmaxRouter: SENDER_NOT_ROUTER");
         require(
             msg.sender == declaredCaller,
-            "ImpermaxRouter: UNAUTHORIZED_CALLER"
+            "SmolmaxRouter: UNAUTHORIZED_CALLER"
         );
         if (calleeData.callType == CallType.REMOVE_LIQ_AND_REPAY) {
             RemoveLiqAndRepayCalldata memory d = abi.decode(
@@ -612,8 +613,8 @@ contract Router is IRouter, IImpermaxCallee {
 
     function _permit(
         address poolToken,
-        uint amount,
-        uint deadline,
+        uint256 amount,
+        uint256 deadline,
         bytes memory permitData
     ) internal virtual {
         if (permitData.length == 0) return;
@@ -621,7 +622,7 @@ contract Router is IRouter, IImpermaxCallee {
             permitData,
             (bool, uint8, bytes32, bytes32)
         );
-        uint value = approveMax ? uint(-1) : amount;
+        uint256 value = approveMax ? uint(-1) : amount;
         IPoolToken(poolToken).permit(
             msg.sender,
             address(this),
@@ -635,8 +636,8 @@ contract Router is IRouter, IImpermaxCallee {
 
     function _borrowPermit(
         address borrowable,
-        uint amount,
-        uint deadline,
+        uint256 amount,
+        uint256 deadline,
         bytes memory permitData
     ) internal virtual {
         if (permitData.length == 0) return;
@@ -644,7 +645,7 @@ contract Router is IRouter, IImpermaxCallee {
             permitData,
             (bool, uint8, bytes32, bytes32)
         );
-        uint value = approveMax ? uint(-1) : amount;
+        uint256 value = approveMax ? uint(-1) : amount;
         IBorrowable(borrowable).borrowPermit(
             msg.sender,
             address(this),
@@ -658,14 +659,14 @@ contract Router is IRouter, IImpermaxCallee {
 
     function _optimalLiquidity(
         address uniswapV2Pair,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin
-    ) public view virtual returns (uint amountA, uint amountB) {
-        (uint reserveA, uint reserveB, ) = IUniswapV2Pair(uniswapV2Pair)
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin
+    ) public view virtual returns (uint256 amountA, uint256 amountB) {
+        (uint256 reserveA, uint256 reserveB, ) = IUniswapV2Pair(uniswapV2Pair)
             .getReserves();
-        uint amountBOptimal = UniswapV2Library.quote(
+        uint256 amountBOptimal = UniswapV2Library.quote(
             amountADesired,
             reserveA,
             reserveB
@@ -673,11 +674,11 @@ contract Router is IRouter, IImpermaxCallee {
         if (amountBOptimal <= amountBDesired) {
             require(
                 amountBOptimal >= amountBMin,
-                "ImpermaxRouter: INSUFFICIENT_B_AMOUNT"
+                "SmolmaxRouter: INSUFFICIENT_B_AMOUNT"
             );
             (amountA, amountB) = (amountADesired, amountBOptimal);
         } else {
-            uint amountAOptimal = UniswapV2Library.quote(
+            uint256 amountAOptimal = UniswapV2Library.quote(
                 amountBDesired,
                 reserveB,
                 reserveA
@@ -685,7 +686,7 @@ contract Router is IRouter, IImpermaxCallee {
             assert(amountAOptimal <= amountADesired);
             require(
                 amountAOptimal >= amountAMin,
-                "ImpermaxRouter: INSUFFICIENT_A_AMOUNT"
+                "SmolmaxRouter: INSUFFICIENT_A_AMOUNT"
             );
             (amountA, amountB) = (amountAOptimal, amountBDesired);
         }
@@ -716,7 +717,7 @@ contract Router is IRouter, IImpermaxCallee {
         address underlying,
         uint8 index
     ) public view virtual override returns (address borrowable) {
-        require(index < 2, "ImpermaxRouter: INDEX_TOO_HIGH");
+        require(index < 2, "SmolmaxRouter: INDEX_TOO_HIGH");
         (, , , address borrowable0, address borrowable1) = IFactory(factory)
             .getLendingPool(underlying);
         return index == 0 ? borrowable0 : borrowable1;

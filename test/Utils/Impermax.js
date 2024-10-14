@@ -69,7 +69,7 @@ async function makeSimpleUniswapOracle(opts = {}) {
 	return await MockOracle.new();
 }
 
-//IMPERMAX DEPLOYER
+//Smolmax DEPLOYER
 
 async function makeBDeployer(opts = {}) {
 	return await BDeployer.new();

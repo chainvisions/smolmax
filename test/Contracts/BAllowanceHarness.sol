@@ -7,7 +7,7 @@ contract BAllowanceHarness is BAllowance {
 		_setName(_name, _symbol);
 	}
 	
-	function checkBorrowAllowance(address owner, address spender, uint amount) external {
+	function checkBorrowAllowance(address owner, address spender, uint256 amount) external {
 		super._checkBorrowAllowance(owner, spender, amount);
 	}
 }

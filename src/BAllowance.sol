@@ -37,7 +37,7 @@ contract BAllowance is PoolToken, BStorage {
         address spender,
         uint256 value
     ) internal {
-        uint _borrowAllowance = borrowAllowance[owner][spender];
+        uint256 _borrowAllowance = borrowAllowance[owner][spender];
         if (spender != owner && _borrowAllowance != type(uint256).max) {
             _require(_borrowAllowance >= value, Errors.BORROW_NOT_ALLOWED);
             borrowAllowance[owner][spender] = _borrowAllowance - value;
@@ -51,8 +51,8 @@ contract BAllowance is PoolToken, BStorage {
     function borrowPermit(
         address owner,
         address spender,
-        uint value,
-        uint deadline,
+        uint256 value,
+        uint256 deadline,
         uint8 v,
         bytes32 r,
         bytes32 s

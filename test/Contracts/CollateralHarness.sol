@@ -3,7 +3,7 @@ pragma solidity =0.5.16;
 import "../../contracts/Collateral.sol";
 
 contract CollateralHarness is Collateral {
-	function calculateLiquidity(uint amountCollateral, uint amount0, uint amount1) external returns (uint liquidity, uint shortfall) {
+	function calculateLiquidity(uint256 amountCollateral, uint256 amount0, uint256 amount1) external returns (uint256 liquidity, uint256 shortfall) {
 		return super._calculateLiquidity(amountCollateral, amount0, amount1);
 	}
 	
@@ -23,24 +23,24 @@ contract CollateralHarness is Collateral {
 		borrowable1 = _borrowable1;
 	}
 	
-	function setBalanceHarness(address account, uint balance) external {
+	function setBalanceHarness(address account, uint256 balance) external {
 		balanceOf[account] = balance;
 	}
 	
-	function setTotalSupply(uint _totalSupply) external {
+	function setTotalSupply(uint256 _totalSupply) external {
 		totalSupply = _totalSupply;
 	}
 	
 	bool public useMockPrices;
-	uint public _price0;
-	uint public _price1;
+	uint256 public _price0;
+	uint256 public _price1;
 	
-	function getPrices() public returns (uint price0, uint price1) {
+	function getPrices() public returns (uint256 price0, uint256 price1) {
 		if (useMockPrices) return (_price0, _price1);
 		return super.getPrices();
 	}
 	
-	function setPricesHarness(uint price0, uint price1) external {
+	function setPricesHarness(uint256 price0, uint256 price1) external {
 		useMockPrices = true;
 		_price0 = price0;
 		_price1 = price1;
@@ -51,14 +51,14 @@ contract CollateralHarness is Collateral {
 	}
 	
 	bool public useMockExchangeRate;
-	uint public _exchangeRate;
+	uint256 public _exchangeRate;
 	
 	function exchangeRate() public returns (uint) {
 		if (useMockExchangeRate) return _exchangeRate;
 		return super.exchangeRate();
 	}
 	
-	function setExchangeRateHarness(uint __exchangeRate) external {
+	function setExchangeRateHarness(uint256 __exchangeRate) external {
 		useMockExchangeRate = true;
 		_exchangeRate = __exchangeRate;
 	}
@@ -67,12 +67,12 @@ contract CollateralHarness is Collateral {
 	mapping(address => uint) public _liquidity;
 	mapping(address => uint) public _shortfall;
 	
-	function accountLiquidity(address borrower) public returns (uint liquidity, uint shortfall) {
+	function accountLiquidity(address borrower) public returns (uint256 liquidity, uint256 shortfall) {
 		if (useMockaAccountLiquidity) return (_liquidity[borrower], _shortfall[borrower]);
 		return super.accountLiquidity(borrower);
 	}
 	
-	function setAccountLiquidityHarness(address borrower, uint liquidity, uint shortfall) external {
+	function setAccountLiquidityHarness(address borrower, uint256 liquidity, uint256 shortfall) external {
 		useMockaAccountLiquidity = true;
 		_liquidity[borrower] = liquidity;
 		_shortfall[borrower] = shortfall;
@@ -81,21 +81,21 @@ contract CollateralHarness is Collateral {
 	bool public useMockCanBorrow;
 	mapping(address => mapping(address => uint)) public maxBorrowable;
 	
-	function canBorrow(address borrower, address borrowable, uint amount) public returns (bool) {
+	function canBorrow(address borrower, address borrowable, uint256 amount) public returns (bool) {
 		if (useMockCanBorrow){
 			return maxBorrowable[borrower][borrowable] >= amount;
 		}
 		return super.canBorrow(borrower, borrowable, amount);
 	}
 	
-	function setMaxBorrowable(address borrower, address borrowable, uint maxAmount) external {
+	function setMaxBorrowable(address borrower, address borrowable, uint256 maxAmount) external {
 		useMockCanBorrow = true;
 		maxBorrowable[borrower][borrowable] = maxAmount;
 	}
 	
 	bool public useMockTokensUnlocked;
 	
-	function tokensUnlocked(address from, uint value) public returns (bool) {
+	function tokensUnlocked(address from, uint256 value) public returns (bool) {
 		if (useMockTokensUnlocked){
 			return true;
 		}

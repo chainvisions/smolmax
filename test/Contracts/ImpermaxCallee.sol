@@ -13,12 +13,12 @@ contract ImpermaxCallee is IImpermaxCallee {
 		underlying = _underlying;
 	}
 
-	function impermaxBorrow(address sender, address borrower, uint borrowAmount, bytes calldata data) external {
+	function impermaxBorrow(address sender, address borrower, uint256 borrowAmount, bytes calldata data) external {
 		sender; borrower; borrowAmount; data;
 		Recipient(recipient).empty(underlying, msg.sender);
 	}
 	
-    function impermaxRedeem(address sender, uint redeemAmount, bytes calldata data) external {
+    function impermaxRedeem(address sender, uint256 redeemAmount, bytes calldata data) external {
 		sender; redeemAmount; data;
 		Recipient(recipient).empty(underlying, msg.sender);
 	}

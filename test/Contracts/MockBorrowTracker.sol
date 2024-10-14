@@ -9,18 +9,18 @@ contract MockBorrowTracker is IBorrowTracker {
 	constructor () public {}
 	
 	mapping(address => uint) public relativeBorrow;
-	uint public totalRelativeBorrows;
+	uint256 public totalRelativeBorrows;
 
-	function trackBorrow(address borrower, uint borrowBalance, uint borrowIndex) external {
-		uint _relativeBorrowPrior = relativeBorrow[borrower];
-		uint _relativeBorrow = borrowBalance.mul(2**128).div(borrowIndex);
+	function trackBorrow(address borrower, uint256 borrowBalance, uint256 borrowIndex) external {
+		uint256 _relativeBorrowPrior = relativeBorrow[borrower];
+		uint256 _relativeBorrow = borrowBalance.mul(2**128).div(borrowIndex);
 		relativeBorrow[borrower] = _relativeBorrow;
 		if (_relativeBorrow > _relativeBorrowPrior) {
-			uint increaseAmount = _relativeBorrow - _relativeBorrowPrior;
+			uint256 increaseAmount = _relativeBorrow - _relativeBorrowPrior;
 			totalRelativeBorrows = totalRelativeBorrows.add(increaseAmount);
 		}
 		else {
-			uint decreaseAmount = _relativeBorrowPrior - _relativeBorrow;
+			uint256 decreaseAmount = _relativeBorrowPrior - _relativeBorrow;
 			totalRelativeBorrows = totalRelativeBorrows > decreaseAmount ? totalRelativeBorrows - decreaseAmount : 0;
 		}
 	}

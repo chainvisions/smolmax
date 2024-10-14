@@ -9,25 +9,25 @@ import {ImpermaxERC20} from "./ImpermaxERC20.sol";
 
 // TODO: Inherit IPoolToken
 contract PoolToken is IPoolToken, ImpermaxERC20, ReentrancyGuard {
-    uint internal constant initialExchangeRate = 1e18;
+    uint256 internal constant initialExchangeRate = 1e18;
     address public override underlying;
     address public override factory;
-    uint public override totalBalance;
-    uint public constant override MINIMUM_LIQUIDITY = 1000;
+    uint256 public override totalBalance;
+    uint256 public constant override MINIMUM_LIQUIDITY = 1000;
 
     event Mint(
         address indexed sender,
         address indexed minter,
-        uint mintAmount,
-        uint mintTokens
+        uint256 mintAmount,
+        uint256 mintTokens
     );
     event Redeem(
         address indexed sender,
         address indexed redeemer,
-        uint redeemAmount,
-        uint redeemTokens
+        uint256 redeemAmount,
+        uint256 redeemTokens
     );
-    event Sync(uint totalBalance);
+    event Sync(uint256 totalBalance);
 
     /*** Initialize ***/
 
@@ -45,8 +45,8 @@ contract PoolToken is IPoolToken, ImpermaxERC20, ReentrancyGuard {
     }
 
     function exchangeRate() public override returns (uint) {
-        uint _totalSupply = totalSupply; // gas savings
-        uint _totalBalance = totalBalance; // gas savings
+        uint256 _totalSupply = totalSupply; // gas savings
+        uint256 _totalBalance = totalBalance; // gas savings
         if (_totalSupply == 0 || _totalBalance == 0) return initialExchangeRate;
         return (_totalBalance * 1e18) / _totalSupply;
     }
@@ -57,9 +57,9 @@ contract PoolToken is IPoolToken, ImpermaxERC20, ReentrancyGuard {
     /// @return mintTokens Amount of tokens minted.
     function mint(
         address _minter
-    ) external override nonReentrant update returns (uint mintTokens) {
-        uint balance = IERC20(underlying).balanceOf(address(this));
-        uint mintAmount = balance - totalBalance;
+    ) external override nonReentrant update returns (uint256 mintTokens) {
+        uint256 balance = IERC20(underlying).balanceOf(address(this));
+        uint256 mintAmount = balance - totalBalance;
         mintTokens = (mintAmount * 1e18) / exchangeRate();
 
         if (totalSupply == 0) {
@@ -78,8 +78,8 @@ contract PoolToken is IPoolToken, ImpermaxERC20, ReentrancyGuard {
     /// @return redeemAmount Amount of `underlying` redeemed.
     function redeem(
         address _redeemer
-    ) external override nonReentrant update returns (uint redeemAmount) {
-        uint redeemTokens = balanceOf[address(this)];
+    ) external override nonReentrant update returns (uint256 redeemAmount) {
+        uint256 redeemTokens = balanceOf[address(this)];
         redeemAmount = (redeemTokens * exchangeRate()) / 1e18;
 
         _require(redeemAmount > 0, Errors.REDEEM_AMOUNT_ZERO);
@@ -104,7 +104,7 @@ contract PoolToken is IPoolToken, ImpermaxERC20, ReentrancyGuard {
     bytes4 private constant SELECTOR =
         bytes4(keccak256(bytes("transfer(address,uint256)")));
 
-    function _safeTransfer(address to, uint amount) internal {
+    function _safeTransfer(address to, uint256 amount) internal {
         (bool success, bytes memory data) = underlying.call(
             abi.encodeWithSelector(SELECTOR, to, amount)
         );

@@ -7,103 +7,103 @@ interface IRouter {
 
     function mint(
         address poolToken,
-        uint amount,
+        uint256 amount,
         address to,
-        uint deadline
-    ) external returns (uint tokens);
+        uint256 deadline
+    ) external returns (uint256 tokens);
 
     function mintETH(
         address poolToken,
         address to,
-        uint deadline
-    ) external payable returns (uint tokens);
+        uint256 deadline
+    ) external payable returns (uint256 tokens);
 
     function mintCollateral(
         address poolToken,
-        uint amount,
+        uint256 amount,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes calldata permitData
-    ) external returns (uint tokens);
+    ) external returns (uint256 tokens);
 
     function redeem(
         address poolToken,
-        uint tokens,
+        uint256 tokens,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes calldata permitData
-    ) external returns (uint amount);
+    ) external returns (uint256 amount);
 
     function redeemETH(
         address poolToken,
-        uint tokens,
+        uint256 tokens,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes calldata permitData
-    ) external returns (uint amountETH);
+    ) external returns (uint256 amountETH);
 
     function borrow(
         address borrowable,
-        uint amount,
+        uint256 amount,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes calldata permitData
     ) external;
 
     function borrowETH(
         address borrowable,
-        uint amountETH,
+        uint256 amountETH,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes calldata permitData
     ) external;
 
     function repay(
         address borrowable,
-        uint amountMax,
+        uint256 amountMax,
         address borrower,
-        uint deadline
-    ) external returns (uint amount);
+        uint256 deadline
+    ) external returns (uint256 amount);
 
     function repayETH(
         address borrowable,
         address borrower,
-        uint deadline
-    ) external payable returns (uint amountETH);
+        uint256 deadline
+    ) external payable returns (uint256 amountETH);
 
     function liquidate(
         address borrowable,
-        uint amountMax,
+        uint256 amountMax,
         address borrower,
         address to,
-        uint deadline
-    ) external returns (uint amount, uint seizeTokens);
+        uint256 deadline
+    ) external returns (uint256 amount, uint256 seizeTokens);
 
     function liquidateETH(
         address borrowable,
         address borrower,
         address to,
-        uint deadline
-    ) external payable returns (uint amountETH, uint seizeTokens);
+        uint256 deadline
+    ) external payable returns (uint256 amountETH, uint256 seizeTokens);
 
     function leverage(
         address uniswapV2Pair,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin,
         address to,
-        uint deadline,
+        uint256 deadline,
         bytes calldata permitDataA,
         bytes calldata permitDataB
     ) external;
 
     function deleverage(
         address uniswapV2Pair,
-        uint redeemTokens,
-        uint amountAMin,
-        uint amountBMin,
-        uint deadline,
+        uint256 redeemTokens,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        uint256 deadline,
         bytes calldata permitData
     ) external;
 

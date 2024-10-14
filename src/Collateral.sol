@@ -29,7 +29,7 @@ contract Collateral is PoolToken, CStorage, CSetter {
     }
 
     // returns the prices of borrowable0's and borrowable1's underlyings with collateral's underlying as denom
-    function getPrices() public returns (uint price0, uint price1) {
+    function getPrices() public returns (uint256 price0, uint256 price1) {
         (uint224 twapPrice112x112, ) = ISimpleUniswapOracle(simpleUniswapOracle)
             .getResult(underlying);
         (uint112 reserve0, uint112 reserve1, ) = IUniswapV2Pair(underlying)
@@ -63,19 +63,19 @@ contract Collateral is PoolToken, CStorage, CSetter {
 
     // returns liquidity in  collateral's underlying
     function _calculateLiquidity(
-        uint amountCollateral,
-        uint amount0,
-        uint amount1
-    ) internal returns (uint liquidity, uint shortfall) {
-        uint _safetyMarginSqrt = safetyMarginSqrt;
-        (uint price0, uint price1) = getPrices();
+        uint256 amountCollateral,
+        uint256 amount0,
+        uint256 amount1
+    ) internal returns (uint256 liquidity, uint256 shortfall) {
+        uint256 _safetyMarginSqrt = safetyMarginSqrt;
+        (uint256 price0, uint256 price1) = getPrices();
 
-        uint a = (amount0 * price0) / 1e18;
-        uint b = (amount1 * price1) / 1e18;
+        uint256 a = (amount0 * price0) / 1e18;
+        uint256 b = (amount1 * price1) / 1e18;
         if (a < b) (a, b) = (b, a);
         a = (a * _safetyMarginSqrt) / 1e18;
         b = (b * 1e18) / _safetyMarginSqrt;
-        uint collateralNeeded = ((a + b) * liquidationPenalty()) / 1e18;
+        uint256 collateralNeeded = ((a + b) * liquidationPenalty()) / 1e18;
 
         if (amountCollateral >= collateralNeeded) {
             return (amountCollateral - collateralNeeded, 0);
@@ -86,19 +86,23 @@ contract Collateral is PoolToken, CStorage, CSetter {
 
     /*** ERC20 ***/
 
-    function _transfer(address from, address to, uint value) internal override {
+    function _transfer(
+        address from,
+        address to,
+        uint256 value
+    ) internal override {
         _require(tokensUnlocked(from, value), Errors.INSUFFICIENT_LIQUIDITY);
         super._transfer(from, to, value);
     }
 
-    function tokensUnlocked(address from, uint value) public returns (bool) {
-        uint _balance = balanceOf[from];
+    function tokensUnlocked(address from, uint256 value) public returns (bool) {
+        uint256 _balance = balanceOf[from];
         if (value > _balance) return false;
-        uint finalBalance = _balance - value;
-        uint amountCollateral = (finalBalance * exchangeRate()) / 1e18;
-        uint amount0 = IBorrowable(borrowable0).borrowBalance(from);
-        uint amount1 = IBorrowable(borrowable1).borrowBalance(from);
-        (, uint shortfall) = _calculateLiquidity(
+        uint256 finalBalance = _balance - value;
+        uint256 amountCollateral = (finalBalance * exchangeRate()) / 1e18;
+        uint256 amount0 = IBorrowable(borrowable0).borrowBalance(from);
+        uint256 amount1 = IBorrowable(borrowable1).borrowBalance(from);
+        (, uint256 shortfall) = _calculateLiquidity(
             amountCollateral,
             amount0,
             amount1
@@ -110,20 +114,21 @@ contract Collateral is PoolToken, CStorage, CSetter {
 
     function accountLiquidityAmounts(
         address borrower,
-        uint amount0,
-        uint amount1
-    ) public returns (uint liquidity, uint shortfall) {
+        uint256 amount0,
+        uint256 amount1
+    ) public returns (uint256 liquidity, uint256 shortfall) {
         if (amount0 == type(uint256).max)
             amount0 = IBorrowable(borrowable0).borrowBalance(borrower);
         if (amount1 == type(uint256).max)
             amount1 = IBorrowable(borrowable1).borrowBalance(borrower);
-        uint amountCollateral = (balanceOf[borrower] * exchangeRate()) / 1e18;
+        uint256 amountCollateral = (balanceOf[borrower] * exchangeRate()) /
+            1e18;
         return _calculateLiquidity(amountCollateral, amount0, amount1);
     }
 
     function accountLiquidity(
         address borrower
-    ) public returns (uint liquidity, uint shortfall) {
+    ) public returns (uint256 liquidity, uint256 shortfall) {
         return
             accountLiquidityAmounts(
                 borrower,
@@ -135,7 +140,7 @@ contract Collateral is PoolToken, CStorage, CSetter {
     function canBorrow(
         address borrower,
         address borrowable,
-        uint accountBorrows
+        uint256 accountBorrows
     ) public returns (bool) {
         address _borrowable0 = borrowable0;
         address _borrowable1 = borrowable1;
@@ -143,13 +148,13 @@ contract Collateral is PoolToken, CStorage, CSetter {
             borrowable == _borrowable0 || borrowable == _borrowable1,
             Errors.INVALID_BORROWABLE
         );
-        uint amount0 = borrowable == _borrowable0
+        uint256 amount0 = borrowable == _borrowable0
             ? accountBorrows
             : type(uint256).max;
-        uint amount1 = borrowable == _borrowable1
+        uint256 amount1 = borrowable == _borrowable1
             ? accountBorrows
             : type(uint256).max;
-        (, uint shortfall) = accountLiquidityAmounts(
+        (, uint256 shortfall) = accountLiquidityAmounts(
             borrower,
             amount0,
             amount1
@@ -161,21 +166,21 @@ contract Collateral is PoolToken, CStorage, CSetter {
     function seize(
         address liquidator,
         address borrower,
-        uint repayAmount
-    ) external returns (uint seizeTokens) {
+        uint256 repayAmount
+    ) external returns (uint256 seizeTokens) {
         _require(
             msg.sender == borrowable0 || msg.sender == borrowable1,
             Errors.UNAUTHORIZED_CALL
         );
 
-        (, uint shortfall) = accountLiquidity(borrower);
+        (, uint256 shortfall) = accountLiquidity(borrower);
         _require(shortfall > 0, Errors.INSUFFICIENT_SHORTFALL);
 
-        uint price;
+        uint256 price;
         if (msg.sender == borrowable0) (price, ) = getPrices();
         else (, price) = getPrices();
 
-        uint collateralEquivalent = (repayAmount * price) / exchangeRate();
+        uint256 collateralEquivalent = (repayAmount * price) / exchangeRate();
 
         seizeTokens = (collateralEquivalent * liquidationIncentive) / 1e18;
         balanceOf[borrower] = (balanceOf[borrower] - seizeTokens);
@@ -183,7 +188,7 @@ contract Collateral is PoolToken, CStorage, CSetter {
         emit Transfer(borrower, liquidator, seizeTokens);
 
         if (liquidationFee > 0) {
-            uint seizeFee = ((collateralEquivalent * liquidationFee) / 1e18);
+            uint256 seizeFee = ((collateralEquivalent * liquidationFee) / 1e18);
             address reservesManager = IFactory(factory).reservesManager();
             balanceOf[borrower] = (balanceOf[borrower] - seizeFee);
             balanceOf[reservesManager] = balanceOf[reservesManager] + seizeFee;
@@ -194,7 +199,7 @@ contract Collateral is PoolToken, CStorage, CSetter {
     // this low-level function should be called from another contract
     function flashRedeem(
         address redeemer,
-        uint redeemAmount,
+        uint256 redeemAmount,
         bytes calldata data
     ) external nonReentrant update {
         _require(redeemAmount <= totalBalance, Errors.INSUFFICIENT_CASH);
@@ -208,9 +213,9 @@ contract Collateral is PoolToken, CStorage, CSetter {
                 data
             );
 
-        uint redeemTokens = balanceOf[address(this)];
-        uint declaredRedeemTokens = ((redeemAmount * 1e18) / exchangeRate()) +
-            1; // rounded up
+        uint256 redeemTokens = balanceOf[address(this)];
+        uint256 declaredRedeemTokens = ((redeemAmount * 1e18) /
+            exchangeRate()) + 1; // rounded up
         _require(
             redeemTokens >= declaredRedeemTokens,
             Errors.INSUFFICIENT_REDEEM_TOKENS
@@ -220,4 +225,3 @@ contract Collateral is PoolToken, CStorage, CSetter {
         emit Redeem(msg.sender, redeemer, redeemAmount, redeemTokens);
     }
 }
-

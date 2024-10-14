@@ -1,7 +1,7 @@
 {
   "name": "impermax-x-uniswapv2-core",
   "version": "0.0.1",
-  "description": "Impermax for UniSwapV2 Core",
+  "description": "Smolmax for UniSwapV2 Core",
   "main": "index.js",
   "author": "Simone Rigolon",
   "devDependencies": {

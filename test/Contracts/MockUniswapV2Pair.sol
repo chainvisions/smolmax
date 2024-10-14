@@ -35,11 +35,11 @@ contract MockUniswapV2Pair is MockERC20 {
 		reserve1 = _reserve1;
 	}
 	
-	function setTotalSupply(uint __totalSupply) external {
+	function setTotalSupply(uint256 __totalSupply) external {
 		_totalSupply = __totalSupply;
 	}
 	
-	function setBalanceHarness(address account, uint amount) external {
+	function setBalanceHarness(address account, uint256 amount) external {
 		_balances[account] = amount;
 	}
 	

@@ -8,10 +8,10 @@ contract ReentrantCallee is IImpermaxCallee {
 	
 	constructor () public {}
 
-	function impermaxBorrow(address sender, address borrower, uint borrowAmount, bytes calldata data) external {
+	function impermaxBorrow(address sender, address borrower, uint256 borrowAmount, bytes calldata data) external {
 		sender; borrower; borrowAmount;
 		address a = address(this);
-		(uint i) = abi.decode(data, (uint));
+		(uint256 i) = abi.decode(data, (uint));
 		require(i != 0, "TEST");
 		if (i == 1) IBorrowable(msg.sender).mint(a);
 		else if (i == 2) IBorrowable(msg.sender).redeem(a);
@@ -22,10 +22,10 @@ contract ReentrantCallee is IImpermaxCallee {
 		else if (i == 7) IBorrowable(msg.sender).underlying();
 	}
 	
-    function impermaxRedeem(address sender, uint redeemAmount, bytes calldata data) external {
+    function impermaxRedeem(address sender, uint256 redeemAmount, bytes calldata data) external {
 		sender; redeemAmount;
 		address a = address(this);
-		(uint i) = abi.decode(data, (uint));
+		(uint256 i) = abi.decode(data, (uint));
 		require(i != 0, "TEST");
 		if (i == 1) ICollateral(msg.sender).mint(a);
 		else if (i == 2) ICollateral(msg.sender).redeem(a);

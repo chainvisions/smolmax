@@ -41,7 +41,7 @@ contract Factory {
         address collateral,
         address borrowable0,
         address borrowable1,
-        uint lendingPoolId
+        uint256 lendingPoolId
     );
     event NewPendingAdmin(address oldPendingAdmin, address newPendingAdmin);
     event NewAdmin(address oldAdmin, address newAdmin);
@@ -176,20 +176,20 @@ contract Factory {
         if (!oracleInitialized) simpleUniswapOracle.initialize(uniswapV2Pair);
 
         ICollateral(lPool.collateral)._initialize(
-            "Impermax Collateral",
+            "Smolmax Collateral",
             "imxC",
             uniswapV2Pair,
             lPool.borrowable0,
             lPool.borrowable1
         );
         IBorrowable(lPool.borrowable0)._initialize(
-            "Impermax Borrowable",
+            "Smolmax Borrowable",
             "imxB",
             token0,
             lPool.collateral
         );
         IBorrowable(lPool.borrowable1)._initialize(
-            "Impermax Borrowable",
+            "Smolmax Borrowable",
             "imxB",
             token1,
             lPool.collateral

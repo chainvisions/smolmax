@@ -7,15 +7,15 @@ contract ImpermaxERC20Harness is ImpermaxERC20 {
 		_setName(_name, _symbol);
 	}
 	
-	function mint(address to, uint value) public {
+	function mint(address to, uint256 value) public {
 		super._mint(to, value);
 	}
 
-	function burn(address from, uint value) public {
+	function burn(address from, uint256 value) public {
 		super._burn(from, value);
 	}
 	
-	function setBalanceHarness(address account, uint amount) external {
+	function setBalanceHarness(address account, uint256 amount) external {
 		balanceOf[account] = amount;
 	}
 }

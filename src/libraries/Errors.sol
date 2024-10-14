@@ -114,7 +114,7 @@ library Errors {
     // Borrowable Storage
     uint256 internal constant SAFE112 = 15;
 
-    // Impermax ERC20
+    // Smolmax ERC20
     uint256 internal constant EXPIRED = 16;
     uint256 internal constant INVALID_SIGNATURE = 17;
 
