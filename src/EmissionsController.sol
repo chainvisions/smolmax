@@ -1,6 +1,7 @@
 // // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.13;
 
+import {SafeCastLib} from "solady/src/utils/SafeCastLib.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 
 /// @title Emissions Controller
@@ -8,6 +9,8 @@ import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 /// @notice The central contract used for managing token emissions.
 
 contract EmissionsController {
+    using SafeCastLib for uint256;
+
     /// @notice Data structure for storing stats on epoch periods.
     /// @dev Built to be packed into one slot to save on R/W costs.
     struct EpochStatistic {

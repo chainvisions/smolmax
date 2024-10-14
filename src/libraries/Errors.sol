@@ -133,5 +133,20 @@ library Errors {
     uint256 internal constant MALFORMED_VOTE = 41;
     uint256 internal constant EPOCH_NOT_COMPLETE = 42;
 
+    // veLIME
+    uint256 internal constant QUERIED_NONEXISTENT_TOKEN = 80;
+    uint256 internal constant STALE = 81;
+    uint256 internal constant ATTACHED = 82;
+    uint256 internal constant VENFT_NOT_AUTHORIZED = 83;
+    uint256 internal constant NO_LOCK_FOUND = 84;
+    uint256 internal constant EXPIRED_LOCK = 85;
+    uint256 internal constant CANNOT_LOCK_BACKWARDS = 86;
+    uint256 internal constant FOUR_YEARS_MAX = 87;
+    uint256 internal constant LOCK_NOT_EXPIRED = 88;
+    uint256 internal constant TOO_MANY_DELEGATES = 89;
+    uint256 internal constant DBSIG_INVALID_SIG = 90;
+    uint256 internal constant DBSIG_INVALID_NONCE = 91;
+    uint256 internal constant DBSIG_EXP_SIG = 92;
+
     uint256 internal constant NICE_TRY = 69;
 }
