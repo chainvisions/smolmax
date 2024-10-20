@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 interface IRouter {
-    function factory() external pure returns (address);
+    function factory() external view returns (address);
 
-    function WETH() external pure returns (address);
+    function WETH() external view returns (address);
 
     function mint(
         address poolToken,
