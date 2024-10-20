@@ -148,5 +148,8 @@ library Errors {
     uint256 internal constant DBSIG_INVALID_NONCE = 91;
     uint256 internal constant DBSIG_EXP_SIG = 92;
 
+    // LIME
+    uint256 internal constant TOKENS_NOT_APPROVED = 93;
+
     uint256 internal constant NICE_TRY = 69;
 }

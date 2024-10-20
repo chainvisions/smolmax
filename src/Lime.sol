@@ -2,6 +2,7 @@
 pragma solidity 0.8.13;
 
 import {ERC20} from "@openzeppelin/token/ERC20/ERC20.sol";
+import {_require, Errors} from "./libraries/Errors.sol";
 
 /// @title Limestone Token
 /// @author Chainvisions
@@ -72,5 +73,17 @@ contract Lime is ERC20("Limestone.fi", "LIME") {
     /// @param _amount Amount of tokens to burn.
     function burn(uint256 _amount) external {
         _burn(msg.sender, _amount);
+    }
+
+    /// @notice Burns tokens approved from the owner.
+    /// @param _from The owner of the tokens to burn from.
+    /// @param _amount Amount of tokens to burn.
+    function burnFrom(address _from, uint256 _amount) external {
+        _require(
+            allowance(_from, msg.sender) >= _amount,
+            Errors.TOKENS_NOT_APPROVED
+        );
+        _spendAllowance(_from, msg.sender, _amount);
+        _burn(_from, _amount);
     }
 }
