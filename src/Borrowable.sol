@@ -46,6 +46,28 @@ contract Borrowable is
         uint256 totalBorrows
     );
 
+    /// @notice Emitted when a new reserve factor is set.
+    /// @param newReserveFactory The new reserve factor.
+    event NewReserveFactor(uint256 newReserveFactor);
+
+    /// @notice Emitted when a new kink utilization rate is set.
+    /// @param NewKinkUtilizationRate The new kink utilization rate.
+    event NewKinkUtilizationRate(uint256 newKinkUtilizationRate);
+
+    /// @notice Emitted when a new adjustment speed is set.
+    /// @param newAdjustSpeed The new adjustment speed.
+    event NewAdjustSpeed(uint256 newAdjustSpeed);
+
+    /// @notice Emitted when a new borrow tracker contract is set.
+    /// @param newBorrowTracker New borrow tracker contract.
+    event NewBorrowTracker(address newBorrowTracker);
+
+    /// @notice Borrowable initializer.
+    function initialize() external {
+        // TODO: Add initializer modifier.
+        BStorage.populateStorage();
+    }
+
     /*** PoolToken ***/
 
     function _update() internal override {
@@ -71,6 +93,7 @@ contract Borrowable is
             return _exchangeRateNew;
         } else return _exchangeRate;
     }
+
     /// @inheritdoc IBorrowable
     function exchangeRate() public override accrue returns (uint256) {
         uint256 _totalSupply = totalSupply;
@@ -80,6 +103,7 @@ contract Borrowable is
         uint256 _exchangeRate = (_actualBalance * 1e18) / _totalSupply;
         return _mintReserves(_exchangeRate, _totalSupply);
     }
+
     /// @inheritdoc IBorrowable
     function sync() external override nonReentrant update accrue {}
 
@@ -245,6 +269,34 @@ contract Borrowable is
     /// @inheritdoc IBorrowable
     function trackBorrow(address borrower) external {
         _trackBorrow(borrower, borrowBalance(borrower), borrowIndex);
+    }
+
+    /// @inheritdoc IBorrowable
+    function setReserveFactor(uint256 _newReserveFactor) external {
+        // TODO: Check for permissions.
+        BStorage._setReserveFactor(_newReserveFactor);
+        emit NewReserveFactor(_newReserveFactor);
+    }
+
+    /// @inheritdoc IBorrowable
+    function setKinkUtilizationRate(uint256 _newKinkUtilRate) external {
+        // TODO: Check for permissions.
+        BStorage._setKinkUtilizationRate(_newKinkUtilRate);
+        emit NewKinkUtilizationRate(_newKinkUtilRate);
+    }
+
+    /// @inheritdoc IBorrowable
+    function setAdjustSpeed(uint256 _newAdjustSpeed) external {
+        // TODO: Check for permissions.
+        BStorage._setAdjustSpeed(_newAdjustSpeed);
+        emit NewAdjustSpeed(_newAdjustSpeed);
+    }
+
+    // @inheritdoc IBorrowable
+    function setBorrowTracker(address _newBorrowTracker) external {
+        // TODO: Check for permissions.
+        BStorage._setBorrowTracker(_newBorrowTracker);
+        emit NewBorrowTracker(_newBorrowTracker);
     }
 
     modifier accrue() {
