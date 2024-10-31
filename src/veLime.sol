@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/token/ERC721/ERC721.sol";
+import "@openzeppelin/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./interfaces/IERC20Extended.sol";
 

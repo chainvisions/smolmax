@@ -14,7 +14,6 @@ import {IBorrowTracker} from "./interfaces/IBorrowTracker.sol";
 import {Math} from "./libraries/Math.sol";
 import {_require, Errors} from "./libraries/Errors.sol";
 
-// TODO: Inherit IBorrowable
 contract Borrowable is
     IBorrowable,
     PoolToken,
@@ -64,6 +63,7 @@ contract Borrowable is
 
     /// @notice Borrowable initializer.
     function initialize() external {
+        _require(msg.sender == factory, Errors.UNAUTHORIZED_CALL);
         // TODO: Add initializer modifier.
         BStorage.populateStorage();
     }

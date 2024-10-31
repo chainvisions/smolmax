@@ -1,4 +1,4 @@
-pragma solidity 0.8.13;
+pragma solidity 0.8.28;
 
 import {_require, Errors} from "./libraries/Errors.sol";
 import {BStorage} from "./BStorage.sol";
