@@ -622,7 +622,7 @@ contract Router is IRouter, IImpermaxCallee {
             permitData,
             (bool, uint8, bytes32, bytes32)
         );
-        uint256 value = approveMax ? uint(-1) : amount;
+        uint256 value = approveMax ? type(uint256).max : amount;
         IPoolToken(poolToken).permit(
             msg.sender,
             address(this),
@@ -645,7 +645,7 @@ contract Router is IRouter, IImpermaxCallee {
             permitData,
             (bool, uint8, bytes32, bytes32)
         );
-        uint256 value = approveMax ? uint(-1) : amount;
+        uint256 value = approveMax ? type(uint256).max : amount;
         IBorrowable(borrowable).borrowPermit(
             msg.sender,
             address(this),

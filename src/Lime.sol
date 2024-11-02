@@ -65,7 +65,7 @@ contract Lime is ERC20("Limestone.fi", "LIME") {
     /// @param _to Address to mint tokens to.
     /// @param _amount Amount of tokens to mint.
     function mint(address _to, uint256 _amount) external {
-        _require(minters[msg.sender], Errors.CALLER_NOT_GOV_OR_REWARD_DIST);
+        _require(minters[msg.sender], Errors.UNAUTHORIZED_CALL);
         _mint(_to, _amount);
     }
 

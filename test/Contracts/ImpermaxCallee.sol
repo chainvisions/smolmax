@@ -1,26 +1,39 @@
-pragma solidity =0.5.16;
+pragma solidity ^0.8.20;
 
-import "../../contracts/interfaces/IImpermaxCallee.sol";
+import "../../src/interfaces/IImpermaxCallee.sol";
 import "./Recipient.sol";
 
 contract ImpermaxCallee is IImpermaxCallee {
+    address recipient;
+    address underlying;
 
-	address recipient;
-	address underlying;
-	
-	constructor (address _recipient, address _underlying) public {
-		recipient = _recipient;
-		underlying = _underlying;
-	}
+    constructor(address _recipient, address _underlying) public {
+        recipient = _recipient;
+        underlying = _underlying;
+    }
 
-	function impermaxBorrow(address sender, address borrower, uint256 borrowAmount, bytes calldata data) external {
-		sender; borrower; borrowAmount; data;
-		Recipient(recipient).empty(underlying, msg.sender);
-	}
-	
-    function impermaxRedeem(address sender, uint256 redeemAmount, bytes calldata data) external {
-		sender; redeemAmount; data;
-		Recipient(recipient).empty(underlying, msg.sender);
-	}
-	
+    function impermaxBorrow(
+        address sender,
+        address borrower,
+        uint256 borrowAmount,
+        bytes calldata data
+    ) external {
+        sender;
+        borrower;
+        borrowAmount;
+        data;
+        Recipient(recipient).empty(underlying, msg.sender);
+    }
+
+    function impermaxRedeem(
+        address sender,
+        uint256 redeemAmount,
+        bytes calldata data
+    ) external {
+        sender;
+        redeemAmount;
+        data;
+        Recipient(recipient).empty(underlying, msg.sender);
+    }
 }
+

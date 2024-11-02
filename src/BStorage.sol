@@ -69,6 +69,7 @@ library BStorage {
         Layout storage l = layout();
         l.borrowIndex = 1e18;
         l.accrualTimestamp = uint32(block.timestamp % 2 ** 32);
+        l.exchangeRateLast = 1e18;
         l.kinkBorrowRate = 6.3419584e9;
         l.rateUpdateTimestamp = uint32(block.timestamp % 2 ** 32);
         l.reserveFactor = 0.10e18;

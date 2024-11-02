@@ -4,23 +4,16 @@ pragma solidity 0.8.28;
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {_require, Errors} from "./libraries/Errors.sol";
 
-contract ImpermaxERC20 {
+contract ImpermaxERC20 is IERC20 {
     string public name;
     string public symbol;
     uint8 public decimals = 18;
     uint256 public totalSupply;
-    mapping(address => uint) public balanceOf;
-    mapping(address => mapping(address => uint)) public allowance;
+    mapping(address => uint) public override balanceOf;
+    mapping(address => mapping(address => uint)) public override allowance;
 
     bytes32 public DOMAIN_SEPARATOR;
     mapping(address => uint) public nonces;
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
 
     function _setName(string memory _name, string memory _symbol) internal {
         name = _name;
@@ -65,7 +58,10 @@ contract ImpermaxERC20 {
         emit Transfer(from, to, value);
     }
 
-    function approve(address spender, uint256 value) external returns (bool) {
+    function approve(
+        address spender,
+        uint256 value
+    ) external override returns (bool) {
         _approve(msg.sender, spender, value);
         return true;
     }
@@ -82,7 +78,7 @@ contract ImpermaxERC20 {
         address from,
         address to,
         uint256 value
-    ) external returns (bool) {
+    ) external override returns (bool) {
         if (allowance[from][msg.sender] != type(uint256).max) {
             allowance[from][msg.sender] = (allowance[from][msg.sender] - value);
         }

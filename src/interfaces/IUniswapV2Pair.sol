@@ -35,7 +35,7 @@ interface IUniswapV2Pair {
 
     function mint(address) external;
 
-    function burn(address) external;
+    function burn(address) external returns (uint256, uint256);
 
     function token0() external view returns (address);
 

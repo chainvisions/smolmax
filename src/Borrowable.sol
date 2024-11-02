@@ -1,10 +1,7 @@
-pragma solidity 0.8.13;
+pragma solidity 0.8.28;
 
-import {PoolToken} from "./PoolToken.sol";
-import {BAllowance} from "./BAllowance.sol";
-import {BInterestRateModel} from "./BInterestRateModel.sol";
-import {BSetter} from "./BSetter.sol";
-import {BStorage} from "./BStorage.sol";
+import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
+import {SafeCastLib} from "solady/src/utils/SafeCastLib.sol";
 import {IBorrowable} from "./interfaces/IBorrowable.sol";
 import {ICollateral} from "./interfaces/ICollateral.sol";
 import {IImpermaxCallee} from "./interfaces/IImpermaxCallee.sol";
@@ -13,59 +10,40 @@ import {IFactory} from "./interfaces/IFactory.sol";
 import {IBorrowTracker} from "./interfaces/IBorrowTracker.sol";
 import {Math} from "./libraries/Math.sol";
 import {_require, Errors} from "./libraries/Errors.sol";
+import {PoolLike, PoolLikeStorage} from "./PoolLike.sol";
+import {BAllowance} from "./BAllowance.sol";
+import {BInterestRateModel} from "./BInterestRateModel.sol";
+import {BStorage} from "./BStorage.sol";
 
-contract Borrowable is
-    IBorrowable,
-    PoolToken,
-    BStorage,
-    BSetter,
-    BInterestRateModel,
-    BAllowance
-{
-    uint256 public constant BORROW_FEE;
+/// TODO Reimplement IBorrowable *eventually*.
+contract Borrowable is PoolLike, BInterestRateModel, BAllowance {
+    using SafeTransferLib for address;
+    using SafeCastLib for uint256;
 
-    event Borrow(
-        address indexed sender,
-        address indexed borrower,
-        address indexed receiver,
-        uint256 borrowAmount,
-        uint256 repayAmount,
-        uint256 accountBorrowsPrior,
-        uint256 accountBorrows,
-        uint256 totalBorrows
-    );
-    event Liquidate(
-        address indexed sender,
-        address indexed borrower,
-        address indexed liquidator,
-        uint256 seizeTokens,
-        uint256 repayAmount,
-        uint256 accountBorrowsPrior,
-        uint256 accountBorrows,
-        uint256 totalBorrows
-    );
+    /// @notice Fee incurred from borrowing.
+    uint256 public constant BORROW_FEE = 0;
 
-    /// @notice Emitted when a new reserve factor is set.
-    /// @param newReserveFactory The new reserve factor.
-    event NewReserveFactor(uint256 newReserveFactor);
-
-    /// @notice Emitted when a new kink utilization rate is set.
-    /// @param NewKinkUtilizationRate The new kink utilization rate.
-    event NewKinkUtilizationRate(uint256 newKinkUtilizationRate);
-
-    /// @notice Emitted when a new adjustment speed is set.
-    /// @param newAdjustSpeed The new adjustment speed.
-    event NewAdjustSpeed(uint256 newAdjustSpeed);
-
-    /// @notice Emitted when a new borrow tracker contract is set.
-    /// @param newBorrowTracker New borrow tracker contract.
-    event NewBorrowTracker(address newBorrowTracker);
+    /// @notice Borrowable Constructor.
+    /// @param _factory Factory contract.
+    constructor(address _factory) PoolLike(_factory) {}
 
     /// @notice Borrowable initializer.
-    function initialize() external {
-        _require(msg.sender == factory, Errors.UNAUTHORIZED_CALL);
+    /// @param _name Name of the Borrowable token.
+    /// @param _symbol Symbol of the Borrowable token.
+    /// @param _underlying Underlying token of the Borrowable.
+    /// @param _collateral Collateral contract of the Borrowable.
+    function initialize(
+        string calldata _name,
+        string calldata _symbol,
+        address _underlying,
+        address _collateral
+    ) external {
+        _require(msg.sender == FACTORY, Errors.UNAUTHORIZED_CALL);
         // TODO: Add initializer modifier.
         BStorage.populateStorage();
+        _setMetadata(_name, _symbol);
+        PoolLikeStorage.layout().underlying = _underlying;
+        BStorage.layout().collateral = _collateral;
     }
 
     /*** PoolToken ***/
@@ -78,42 +56,59 @@ contract Borrowable is
     function _mintReserves(
         uint256 _exchangeRate,
         uint256 _totalSupply
-    ) internal returns (uint) {
-        uint256 _exchangeRateLast = exchangeRateLast;
+    ) internal returns (uint256) {
+        BStorage.Layout storage l = BStorage.layout();
+        uint256 _exchangeRateLast = l.exchangeRateLast;
         if (_exchangeRate > _exchangeRateLast) {
             uint256 _exchangeRateNew = _exchangeRate -
-                (((_exchangeRate - _exchangeRateLast) * reserveFactor) / 1e18);
+                (((_exchangeRate - _exchangeRateLast) * l.reserveFactor) /
+                    1e18);
             uint256 liquidity = ((_totalSupply * _exchangeRate) /
                 _exchangeRateNew) - _totalSupply;
             if (liquidity > 0) {
-                address reservesManager = IFactory(factory).reservesManager();
+                address reservesManager = IFactory(FACTORY).reservesManager();
                 _mint(reservesManager, liquidity);
             }
-            exchangeRateLast = _exchangeRateNew;
+            l.exchangeRateLast = _exchangeRateNew;
             return _exchangeRateNew;
         } else return _exchangeRate;
     }
 
     /// @inheritdoc IBorrowable
-    function exchangeRate() public override accrue returns (uint256) {
-        uint256 _totalSupply = totalSupply;
-        uint256 _actualBalance = totalBalance + totalBorrows;
-        if (_totalSupply == 0 || _actualBalance == 0)
-            return initialExchangeRate;
+    function exchangeRate()
+        public
+        override(PoolLike, IBorrowable)
+        accrue
+        returns (uint256)
+    {
+        uint256 _totalSupply = _totalSupply();
+        uint256 _actualBalance = PoolLikeStorage.layout().totalBalance +
+            BStorage.layout().totalBorrows;
+        if (_totalSupply == 0 || _actualBalance == 0) return 1e18;
         uint256 _exchangeRate = (_actualBalance * 1e18) / _totalSupply;
         return _mintReserves(_exchangeRate, _totalSupply);
     }
 
     /// @inheritdoc IBorrowable
-    function sync() external override nonReentrant update accrue {}
+    function sync()
+        external
+        override(PoolLike, IBorrowable)
+        nonReentrant
+        accrue
+    {
+        _update();
+    }
 
     /*** Borrowable ***/
     /// @inheritdoc IBorrowable
-    function borrowBalance(address borrower) public view returns (uint) {
-        BorrowSnapshot memory borrowSnapshot = borrowBalances[borrower];
+    function borrowBalance(address borrower) public view returns (uint256) {
+        BStorage.Layout storage l = BStorage.layout();
+        BStorage.BorrowSnapshot memory borrowSnapshot = l.borrowBalances[
+            borrower
+        ];
         if (borrowSnapshot.interestIndex == 0) return 0; // not initialized
         return
-            (uint(borrowSnapshot.principal) * borrowIndex) /
+            (uint(borrowSnapshot.principal) * l.borrowIndex) /
             borrowSnapshot.interestIndex;
     }
 
@@ -122,7 +117,7 @@ contract Borrowable is
         uint256 accountBorrows,
         uint256 _borrowIndex
     ) internal {
-        address _borrowTracker = borrowTracker;
+        address _borrowTracker = BStorage.layout().borrowTracker;
         if (_borrowTracker == address(0)) return;
         IBorrowTracker(_borrowTracker).trackBorrow(
             borrower,
@@ -143,25 +138,30 @@ contract Borrowable is
             uint256 _totalBorrows
         )
     {
+        BStorage.Layout storage l = BStorage.layout();
         accountBorrowsPrior = borrowBalance(borrower);
         if (borrowAmount == repayAmount)
-            return (accountBorrowsPrior, accountBorrowsPrior, totalBorrows);
-        uint112 _borrowIndex = borrowIndex;
+            return (accountBorrowsPrior, accountBorrowsPrior, l.totalBorrows);
+        uint112 _borrowIndex = l.borrowIndex;
         if (borrowAmount > repayAmount) {
-            BorrowSnapshot storage borrowSnapshot = borrowBalances[borrower];
+            BStorage.BorrowSnapshot storage borrowSnapshot = l.borrowBalances[
+                borrower
+            ];
             uint256 increaseAmount = borrowAmount - repayAmount;
             accountBorrows = accountBorrowsPrior + increaseAmount;
-            borrowSnapshot.principal = safe112(accountBorrows);
+            borrowSnapshot.principal = accountBorrows.toUint112();
             borrowSnapshot.interestIndex = _borrowIndex;
-            _totalBorrows = uint(totalBorrows) + increaseAmount;
-            totalBorrows = safe112(_totalBorrows);
+            _totalBorrows = uint256(l.totalBorrows) + increaseAmount;
+            l.totalBorrows = _totalBorrows.toUint112();
         } else {
-            BorrowSnapshot storage borrowSnapshot = borrowBalances[borrower];
+            BStorage.BorrowSnapshot storage borrowSnapshot = l.borrowBalances[
+                borrower
+            ];
             uint256 decreaseAmount = repayAmount - borrowAmount;
             accountBorrows = accountBorrowsPrior > decreaseAmount
                 ? accountBorrowsPrior - decreaseAmount
                 : 0;
-            borrowSnapshot.principal = safe112(accountBorrows);
+            borrowSnapshot.principal = accountBorrows.toUint112();
             if (accountBorrows == 0) {
                 borrowSnapshot.interestIndex = 0;
             } else {
@@ -169,11 +169,11 @@ contract Borrowable is
             }
             uint256 actualDecreaseAmount = accountBorrowsPrior - accountBorrows;
             /// @dev gas savings
-            _totalBorrows = totalBorrows;
+            _totalBorrows = l.totalBorrows;
             _totalBorrows = _totalBorrows > actualDecreaseAmount
                 ? _totalBorrows - actualDecreaseAmount
                 : 0;
-            totalBorrows = safe112(_totalBorrows);
+            l.totalBorrows = _totalBorrows.toUint112();
         }
         _trackBorrow(borrower, accountBorrows, _borrowIndex);
     }
@@ -184,13 +184,14 @@ contract Borrowable is
         address receiver,
         uint256 borrowAmount,
         bytes calldata data
-    ) external nonReentrant update accrue {
-        uint256 _totalBalance = totalBalance;
+    ) external nonReentrant accrue {
+        PoolLikeStorage.Layout storage l = PoolLikeStorage.layout();
+        uint256 _totalBalance = l.totalBalance;
         _require(borrowAmount <= _totalBalance, Errors.INSUFFICIENT_CASH);
         _checkBorrowAllowance(borrower, msg.sender, borrowAmount);
 
         /// @dev optimistically transfer funds
-        if (borrowAmount > 0) _safeTransfer(receiver, borrowAmount);
+        if (borrowAmount > 0) l.underlying.safeTransfer(receiver, borrowAmount);
         if (data.length > 0)
             IImpermaxCallee(receiver).impermaxBorrow(
                 msg.sender,
@@ -198,7 +199,7 @@ contract Borrowable is
                 borrowAmount,
                 data
             );
-        uint256 balance = IERC20(underlying).balanceOf(address(this));
+        uint256 balance = IERC20(l.underlying).balanceOf(address(this));
 
         uint256 borrowFee = (borrowAmount * BORROW_FEE) / 1e18;
         uint256 adjustedBorrowAmount = borrowAmount + borrowFee;
@@ -211,7 +212,7 @@ contract Borrowable is
 
         if (adjustedBorrowAmount > repayAmount)
             _require(
-                ICollateral(collateral).canBorrow(
+                ICollateral(BStorage.layout().collateral).canBorrow(
                     borrower,
                     address(this),
                     accountBorrows
@@ -229,21 +230,23 @@ contract Borrowable is
             accountBorrows,
             _totalBorrows
         );
+        _update();
     }
 
     /// @inheritdoc IBorrowable
     function liquidate(
         address borrower,
         address liquidator
-    ) external nonReentrant update accrue returns (uint256 seizeTokens) {
-        uint256 balance = IERC20(underlying).balanceOf(address(this));
-        uint256 repayAmount = balance - totalBalance;
+    ) external nonReentrant accrue returns (uint256 seizeTokens) {
+        PoolLikeStorage.Layout storage l = PoolLikeStorage.layout();
+        uint256 balance = IERC20(l.underlying).balanceOf(address(this));
+        uint256 repayAmount = balance - l.totalBalance;
 
         uint256 actualRepayAmount = Math.min(
             borrowBalance(borrower),
             repayAmount
         );
-        seizeTokens = ICollateral(collateral).seize(
+        seizeTokens = ICollateral(BStorage.layout().collateral).seize(
             liquidator,
             borrower,
             actualRepayAmount
@@ -264,11 +267,17 @@ contract Borrowable is
             accountBorrows,
             _totalBorrows
         );
+
+        _update();
     }
 
     /// @inheritdoc IBorrowable
     function trackBorrow(address borrower) external {
-        _trackBorrow(borrower, borrowBalance(borrower), borrowIndex);
+        _trackBorrow(
+            borrower,
+            borrowBalance(borrower),
+            BStorage.layout().borrowIndex
+        );
     }
 
     /// @inheritdoc IBorrowable

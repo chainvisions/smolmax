@@ -2,13 +2,12 @@ pragma solidity 0.8.28;
 
 import {_require, Errors} from "./libraries/Errors.sol";
 import {BStorage} from "./BStorage.sol";
-import {PoolToken} from "./PoolToken.sol";
 
 /// @title Borrowable Allowance
 /// @author Chainvisions
 //  @notice Contract for handling Borrowable token allowances.
 
-contract BAllowance is PoolToken, BStorage {
+contract BAllowance {
     event BorrowApproval(
         address indexed owner,
         address indexed spender,
@@ -20,7 +19,7 @@ contract BAllowance is PoolToken, BStorage {
         address spender,
         uint256 value
     ) private {
-        borrowAllowance[owner][spender] = value;
+        BStorage.layout().borrowAllowances[owner][spender] = value;
         emit BorrowApproval(owner, spender, value);
     }
 
@@ -37,13 +36,19 @@ contract BAllowance is PoolToken, BStorage {
         address spender,
         uint256 value
     ) internal {
-        uint256 _borrowAllowance = borrowAllowance[owner][spender];
+        uint256 _borrowAllowance = BStorage.layout().borrowAllowances[owner][
+            spender
+        ];
         if (spender != owner && _borrowAllowance != type(uint256).max) {
             _require(_borrowAllowance >= value, Errors.BORROW_NOT_ALLOWED);
-            borrowAllowance[owner][spender] = _borrowAllowance - value;
+            BStorage.layout().borrowAllowances[owner][spender] =
+                _borrowAllowance -
+                value;
         }
     }
 
+    /// @dev Shelve for now as odds are that nobody will even use this.
+    /*
     // keccak256("BorrowPermit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     bytes32 public constant BORROW_PERMIT_TYPEHASH =
         0xf6d86ed606f871fa1a557ac0ba607adce07767acf53f492fb215a1a4db4aea6f;
@@ -68,5 +73,5 @@ contract BAllowance is PoolToken, BStorage {
             BORROW_PERMIT_TYPEHASH
         );
         _borrowApprove(owner, spender, value);
-    }
+    }*/
 }

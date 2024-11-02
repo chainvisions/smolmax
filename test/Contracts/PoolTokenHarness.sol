@@ -1,9 +1,10 @@
-pragma solidity =0.5.16;
+pragma solidity ^0.8.20;
 
-import "../../contracts/PoolToken.sol";
+import "../../src/PoolToken.sol";
 
 contract PoolTokenHarness is PoolToken {
-	function setUnderlying(address _underlying) public {
-		underlying = _underlying;
-	}
+    function setUnderlying(address _underlying) public {
+        underlying = _underlying;
+    }
 }
+

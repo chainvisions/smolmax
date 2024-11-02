@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {SafeCastLib} from "solady/src/utils/SafeCastLib.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {_require, Errors} from "./libraries/Errors.sol";
 
 /// @title Emissions Controller
 /// @author Chainvisions
@@ -101,7 +102,7 @@ contract EmissionsController {
     function close() external {
         // Bookkeeping.
         EpochStatistic memory latestStats = emissionInfo;
-        latestStats.endedAt = block.timestamp;
+        latestStats.endedAt = block.timestamp.toUint32();
         records.push(latestStats);
         delete emissionInfo;
 

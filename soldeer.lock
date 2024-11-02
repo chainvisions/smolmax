@@ -6,6 +6,13 @@ checksum = "642a59e89329abd51254468f4607a0e3b3b99d0981cf5c6caf34d8f1dd9cb4b6"
 integrity = "70c5e59b178919eb7be2a90e121b198f7c5bd04e0554f00a134ddb08f0fd8b67"
 
 [[dependencies]]
+name = "@solidstate-contracts"
+version = "0.0.60"
+url = "https://soldeer-revisions.s3.amazonaws.com/@solidstate-contracts/0_0_60_22-06-2024_06:01:47_contracts.zip"
+checksum = "17742b83b4cfd27de01469310d0db6a15c90fe42b730ae7bcb468c6b1872497c"
+integrity = "898b6ed755468255a321bce397a349ddbc83ad3d2b3c57fa20fe2499ce71f283"
+
+[[dependencies]]
 name = "forge-std"
 version = "1.9.3"
 url = "https://soldeer-revisions.s3.amazonaws.com/forge-std/1_9_3_30-09-2024_08:27:09_forge-std-1.9.zip"
