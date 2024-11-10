@@ -57,7 +57,7 @@ contract EmissionsController {
     EpochStatistic public emissionInfo;
 
     /// @notice Vaults that are permitted to emit tokens.
-    mapping(address => bool) public emmitableVaults;
+    mapping(address => bool) public emitableVaults;
 
     /// @notice Amount of weights held by a specific vault.
     mapping(address => uint256) public vaultWeight;
@@ -113,7 +113,7 @@ contract EmissionsController {
         uint256 _amount,
         bool _penalty
     ) external {
-        _require(emmitableVaults[msg.sender], Errors.VAULT_NOT_EMITTABLE);
+        _require(emitableVaults[msg.sender], Errors.VAULT_NOT_EMITTABLE);
 
         // Mint devshare and distribute LIME tokens.
         LIME.mint(address(0), ((_amount * 500) / 10000)); // TODO: Devshare address + calcs
