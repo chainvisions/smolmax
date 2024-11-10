@@ -10,14 +10,14 @@ import {PoolLikeStorage} from "./PoolLikeStorage.sol";
 /// @author Chainvisions
 /// @notice Interest rate model for Borrowable tokens.
 
-abstract contract BInterestRateModel is IBorrowable {
+abstract contract BInterestRateModel {
     using SafeCastLib for uint256;
 
     /// @dev When utilization is 100% borrowRate is kinkBorrowRate * KINK_MULTIPLIER
     /// @dev kinkBorrowRate relative adjustment per second belongs to [1-adjustSpeed, 1+adjustSpeed*(KINK_MULTIPLIER-1)]
-    uint256 public constant override KINK_MULTIPLIER = 2;
-    uint256 public constant override KINK_BORROW_RATE_MAX = 792.744800e9; //2500% per year
-    uint256 public constant override KINK_BORROW_RATE_MIN = 0.31709792e9; //1% per year
+    uint256 public constant KINK_MULTIPLIER = 2;
+    uint256 public constant KINK_BORROW_RATE_MAX = 792.744800e9; //2500% per year
+    uint256 public constant KINK_BORROW_RATE_MIN = 0.31709792e9; //1% per year
 
     event CalculateKinkBorrowRate(uint256 kinkBorrowRate);
 
@@ -91,7 +91,8 @@ abstract contract BInterestRateModel is IBorrowable {
                 1e18;
         }
         l.borrowRate = uint48(_borrowRate);
-        emit CalculateBorrowRate(_borrowRate);
+        // TODO: Interface
+        //emit CalculateBorrowRate(_borrowRate);
     }
 
     /// @notice applies accrued interest to total borrows and reserves
@@ -115,7 +116,8 @@ abstract contract BInterestRateModel is IBorrowable {
 
         l.borrowIndex = _borrowIndex.toUint112();
         l.totalBorrows = _totalBorrows.toUint112();
-        emit AccrueInterest(interestAccumulated, _borrowIndex, _totalBorrows);
+        // TODO:Interface
+        // emit AccrueInterest(interestAccumulated, _borrowIndex, _totalBorrows);
     }
 
     function getBlockTimestamp() public view returns (uint32) {

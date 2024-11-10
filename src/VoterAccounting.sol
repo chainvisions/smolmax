@@ -16,7 +16,7 @@ library VoterAccounting {
     }
 
     bytes32 internal constant STORAGE_SLOT =
-        keccak256("limestone.contracts.storage.EmissionsController");
+        keccak256("limestone.contracts.storage.EmissionsController.Voting");
 
     /// @dev Method used for registering votes for bribe rewards on a specific vault.
     /// @param _vault Vault to register votes towards.
