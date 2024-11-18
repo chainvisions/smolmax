@@ -46,13 +46,7 @@ function _revert(uint256 errorCode) pure {
         // per character = 56) to locate it in the most significant part of the 256 slot (the beginning of a byte
         // array).
 
-        let revertReason := shl(
-            200,
-            add(
-                0x494d0000000000,
-                add(add(units, shl(8, tenths)), shl(16, hundreds))
-            )
-        )
+        let revertReason := shl(200, add(0x494d0000000000, add(add(units, shl(8, tenths)), shl(16, hundreds))))
 
         // We can now encode the reason in memory, which can be safely overwritten as we're about to revert. The encoded
         // message will have the following layout:
@@ -60,15 +54,9 @@ function _revert(uint256 errorCode) pure {
 
         // The Solidity revert reason identifier is 0x08c739a0, the function selector of the Error(string) function. We
         // also write zeroes to the next 28 bytes of memory, but those are about to be overwritten.
-        mstore(
-            0x0,
-            0x08c379a000000000000000000000000000000000000000000000000000000000
-        )
+        mstore(0x0, 0x08c379a000000000000000000000000000000000000000000000000000000000)
         // Next is the offset to the location of the string, which will be placed immediately after (20 bytes away).
-        mstore(
-            0x04,
-            0x0000000000000000000000000000000000000000000000000000000000000020
-        )
+        mstore(0x04, 0x0000000000000000000000000000000000000000000000000000000000000020)
         // The string length is fixed: 7 characters.
         mstore(0x24, 7)
         // Finally, the string itself is stored.
@@ -152,4 +140,31 @@ library Errors {
     uint256 internal constant TOKENS_NOT_APPROVED = 93;
 
     uint256 internal constant NICE_TRY = 69;
+
+    // Strategies
+    uint256 internal constant CALL_RESTRICTED = 27;
+    uint256 internal constant STRATEGY_IN_EMERGENCY_STATE = 28;
+    uint256 internal constant REWARD_POOL_UNDERLYING_MISMATCH = 29;
+    uint256 internal constant UNSALVAGABLE_TOKEN = 30;
+
+    // Strategy splitter.
+    uint256 internal constant ARRAY_LENGTHS_DO_NOT_MATCH = 31;
+    uint256 internal constant WEIGHTS_DO_NOT_ADD_UP = 32;
+    uint256 internal constant REBALANCE_REQUIRED = 33;
+    uint256 internal constant INDICE_DOES_NOT_EXIST = 34;
+
+    // Controller
+    uint256 internal constant CALLER_NOT_REFEREE = 35;
+    uint256 internal constant REFERRAL_CODE_ALREADY_EXISTS = 36;
+    uint256 internal constant INSUFFICIENT_ETHER_AMOUNT = 37;
+    uint256 internal constant ANTI_SYBIL_ATTESTATION_EXISTS = 38;
+
+    // Warchest
+    uint256 internal constant CALLER_NOT_LENDING_POOL = 39;
+    uint256 internal constant CIRCUIT_BREAKER_NOT_ACTIVE = 40;
+
+    // Lending Pool
+
+    // Workers
+    uint256 internal constant ORACLE_PRICE_STALE = 47;
 }
