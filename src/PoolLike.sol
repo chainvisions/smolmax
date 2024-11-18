@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
-import {SolidStateERC20} from "@solidstate-contracts/token/ERC20/SolidStateERC20.sol";
+import {SolidStateERC20} from "@solidstate/token/ERC20/SolidStateERC20.sol";
 import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "solady/src/utils/ReentrancyGuard.sol";
 import {_require, Errors} from "./libraries/Errors.sol";

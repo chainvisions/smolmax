@@ -10,7 +10,7 @@ import {IUniswapV2Pair} from "./interfaces/IUniswapV2Pair.sol";
 import {UQ112x112} from "./libraries/UQ112x112.sol";
 import {Math} from "./libraries/Math.sol";
 import {_require, Errors} from "./libraries/Errors.sol";
-import {PoolToken} from "./PoolToken.sol";
+import {PoolToken} from "./PoolLike.sol";
 import {CStorage} from "./CStorage.sol";
 import {CSetter} from "./CSetter.sol";
 
