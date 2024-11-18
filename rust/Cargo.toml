@@ -1,0 +1,5 @@
+[workspace]
+members = [ "arbiter-sims","diamondgen", "mutation-tests", "crates/bindings" ]
+
+[workspace.dependencies]
+foundry-contracts = { path = "crates/bindings" }
