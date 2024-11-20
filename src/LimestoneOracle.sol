@@ -55,7 +55,7 @@ contract LimestoneOracle is ILimestoneOracle, GovernableNoInit {
     }
 
     /// @notice Fetches pair token data from storage.
-    /// @param _pair Pair to fetcht he token data for.
+    /// @param _pair Pair to fetch the token data for.
     /// @return The token data for `_pair`.
     function pairTokenData(address _pair) external view returns (PairTokenData memory) {
         return OracleStorage.layout().pairDataCache[_pair];
