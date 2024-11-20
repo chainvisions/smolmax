@@ -171,4 +171,5 @@ library Errors {
     uint256 internal constant ORACLE_PRICE_STALE = 49;
     uint256 internal constant SPOT_TOO_HIGH = 50;
     uint256 internal constant SPOT_TOO_LOW = 51;
+    uint256 internal constant TOO_MUCH_SLIPPAGE = 52;
 }

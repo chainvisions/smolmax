@@ -402,7 +402,7 @@ contract KingdomWorker is BaseWorker {
         uint256 minted = SOLIDLY_ROUTER.addLiquidity(
             address(token0), address(token1), STABLE, reserve0, reserve1, 0, 0, address(this), block.timestamp
         );
-        require(minted >= _minLiquidity, "FUCKING SLIPPAGE DAWG!!!!"); // TODO: Create an actual error for this.
+        _require(minted >= _minLiquidity, Errors.TOO_MUCH_SLIPPAGE);
         token0.safeApprove(address(SOLIDLY_ROUTER), 0);
         token1.safeApprove(address(SOLIDLY_ROUTER), 0);
         return minted;
@@ -447,7 +447,7 @@ contract KingdomWorker is BaseWorker {
             address(this),
             block.timestamp
         );
-        require(minted >= _minLiquidity, "FUFUCUCKC SLIPPAGE!!!!"); // TODO: Create an actual error for this.
+        _require(minted >= _minLiquidity, Errors.TOO_MUCH_SLIPPAGE);
 
         token0.safeApprove(address(SOLIDLY_ROUTER), 0);
         token1.safeApprove(address(SOLIDLY_ROUTER), 0);
