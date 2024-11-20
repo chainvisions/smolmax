@@ -107,7 +107,7 @@ contract KingdomWorker is BaseWorker {
             _addLiquidityOneSided(minLiquidity);
         } else if (op.kind == OperationKind.AddLiquidityTwoSided) {
             (uint256 otherIn, uint256 minLiquidity) = abi.decode(op.data, (uint256, uint256));
-            _addLiquidityTwoSided(otherIn, minLiquidity);
+            _addLiquidityTwoSided(_user, otherIn, minLiquidity);
         } else if (op.kind == OperationKind.RemoveLiquidity) {
             _removeLiquidity(removed, _user, _debt);
         } else {
@@ -408,7 +408,7 @@ contract KingdomWorker is BaseWorker {
         return minted;
     }
 
-    function _addLiquidityTwoSided(uint256 _otherIn, uint256 _minLiquidity) internal {
+    function _addLiquidityTwoSided(address _user, uint256 _otherIn, uint256 _minLiquidity) internal {
         IUniswapV2Pair _underlying = IUniswapV2Pair(address(STRATEGY_UNDERLYING));
         IERC20 token0 = IERC20(_underlying.token0());
         IERC20 token1 = IERC20(_underlying.token1());
@@ -416,9 +416,11 @@ contract KingdomWorker is BaseWorker {
         uint256 reserve1 = _underlying.reserve1();
         uint256 collatHeld = COLLATERAL.balanceOf(address(this));
 
+        LENDING_POOL.accessUserAssets(_user, token0 == COLLATERAL ? token1 : token0, _otherIn);
         token0.safeApprove(address(SOLIDLY_ROUTER), type(uint256).max);
         token1.safeApprove(address(SOLIDLY_ROUTER), type(uint256).max);
 
+        // Swap user tokens into the optimal amount for adding liquidity.
         (uint256 cRes, uint256 oRes) = token0 == COLLATERAL ? (reserve0, reserve1) : (reserve1, reserve0);
         (uint256 toSwap, bool reversed) = SwapUtils._optimalZapAmountIn(collatHeld, _otherIn, cRes, oRes);
         if (toSwap > 0) {
