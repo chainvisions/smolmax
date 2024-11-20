@@ -48,7 +48,7 @@ contract KingdomWorker is BaseWorker {
     bool public immutable STABLE;
 
     /// @notice Router contract for Solidly.
-    ISolidlyRouter01 public immutable SOLIDLY_ROUTER = ISolidlyRouter01(0xAAA45c8F5ef92a000a121d102F4e89278a711Faa);
+    ISolidlyRouter01 public immutable SOLIDLY_ROUTER; 
 
     /// @notice Configuration for a specific Solidly swap.
     mapping(address => mapping(address => SwapConfiguration)) public swapConfig;
