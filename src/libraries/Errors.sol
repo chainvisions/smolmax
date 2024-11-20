@@ -166,5 +166,9 @@ library Errors {
     // Lending Pool
 
     // Workers
-    uint256 internal constant ORACLE_PRICE_STALE = 47;
+    uint256 internal constant TOKEN_0_POTENTIAL_MANIPULATION = 47;
+    uint256 internal constant TOKEN_1_POTENTIAL_MANIPULATION = 48;
+    uint256 internal constant ORACLE_PRICE_STALE = 49;
+    uint256 internal constant SPOT_TOO_HIGH = 50;
+    uint256 internal constant SPOT_TOO_LOW = 51;
 }

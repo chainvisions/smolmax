@@ -15,12 +15,7 @@ interface ILendingPool {
     /// @param killer Address of the liquidator that killed the position.
     /// @param prize Reward awarded to the liquidator for liquidating the position.
     /// @param left Amount of assets left after the liquidation.
-    event Kill(
-        uint256 indexed id,
-        address indexed killer,
-        uint256 prize,
-        uint256 left
-    );
+    event Kill(uint256 indexed id, address indexed killer, uint256 prize, uint256 left);
 
     /// @notice Deposits tokens into the lending pool.
     /// @param _poolId ID of the lending pool to deposit into.
@@ -31,4 +26,10 @@ interface ILendingPool {
     /// @param _poolId Pool ID of the lending pool to withdraw from.
     /// @param _amount Amount of tokens to withdraw from the lending pool.
     function withdraw(uint256 _poolId, uint256 _amount) external;
+
+    /// @notice Used by workers to access any additional approved assets from a specific user. Used for two sided liquidity provision.
+    /// @param _user User to request assets from.
+    /// @param _token Token to request from user.
+    /// @param _requestedAmount Amount requested to transfer from the user.
+    function accessUserAssets(address _user, address _token, uint256 _requestedAmount) external;
 }

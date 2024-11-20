@@ -3,9 +3,15 @@ pragma solidity 0.8.18;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 
-enum WorkerOperation {
-    AddLiquidity,
+enum OperationKind {
+    AddLiquidityOneSided,
+    AddLiquidityTwoSided,
     RemoveLiquidity
+}
+
+struct WorkerOperation {
+    OperationKind kind;
+    bytes data;
 }
 
 struct RewardToken {
