@@ -26,7 +26,7 @@ import {IDromeGauge} from "./interfaces/IDromeGauge.sol";
 /// @author Chainvisions
 /// @notice Limestone worker for -drome LPs.
 
-contract KingdomWorker is BaseWorker {
+contract DromeWorker is BaseWorker {
     using SafeTransferLib for address;
 
     // Structure for pairs, used to evade stack too deep errors. (-_-)
@@ -181,8 +181,8 @@ contract KingdomWorker is BaseWorker {
         _require(oracleUpdatedAt >= block.timestamp - 1 days, Errors.ORACLE_PRICE_STALE);
         uint256 spotPrice =
             ((((reserve1 * 1e18) * (10 ** (18 - token1Decimals))) / reserve0) / (10 ** (18 - token0Decimals)));
-        _require(spotPrice * 10000 <= oraclePrice * 50500, Errors.SPOT_TOO_HIGH); // TODO: Max diff.
-        _require(spotPrice * 60606060 >= oraclePrice * 10000, Errors.SPOT_TOO_LOW); // TODO: Max diff.
+        _require(spotPrice * 10000 <= oraclePrice * 250, Errors.SPOT_TOO_HIGH);
+        _require(spotPrice * 250 >= oraclePrice * 10000, Errors.SPOT_TOO_LOW);
 
         return true;
     }

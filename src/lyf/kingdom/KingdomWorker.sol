@@ -48,7 +48,7 @@ contract KingdomWorker is BaseWorker {
     bool public immutable STABLE;
 
     /// @notice Router contract for Solidly.
-    ISolidlyRouter01 public immutable SOLIDLY_ROUTER; 
+    ISolidlyRouter01 public immutable SOLIDLY_ROUTER;
 
     /// @notice Configuration for a specific Solidly swap.
     mapping(address => mapping(address => SwapConfiguration)) public swapConfig;
@@ -181,21 +181,24 @@ contract KingdomWorker is BaseWorker {
     /// @return Whether or not the underlying pool is healthy and able to accept debt.
     function healthcheck() external view override returns (bool) {
         (address token0, address token1) = ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).tokens();
-        (uint8 token0Decimals, uint8 token1Decimals) = (IERC20Metadata(token0).decimals(), IERC20Metadata(token1).decimals());
-        (uint256 oraclePrice, uint32 oracleUpdatedAt) = ILimestoneOracle(address(LENDING_POOL)).getPriceForToken(token0, token1);
+        (uint8 token0Decimals, uint8 token1Decimals) =
+            (IERC20Metadata(token0).decimals(), IERC20Metadata(token1).decimals());
+        (uint256 oraclePrice, uint32 oracleUpdatedAt) =
+            ILimestoneOracle(address(LENDING_POOL)).getPriceForToken(token0, token1);
         (uint256 reserve0, uint256 reserve1,) = ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).getReserves();
-        _require((token0.balanceOf(address(STRATEGY_UNDERLYING)) * 100) <= (reserve0 * 101), Errors.TOKEN_0_POTENTIAL_MANIPULATION);
-        _require((token1.balanceOf(address(STRATEGY_UNDERLYING)) * 100) <= (reserve1 * 101), Errors.TOKEN_1_POTENTIAL_MANIPULATION);
         _require(
-            oracleUpdatedAt >= block.timestamp - 1 days,
-            Errors.ORACLE_PRICE_STALE
+            (token0.balanceOf(address(STRATEGY_UNDERLYING)) * 100) <= (reserve0 * 101),
+            Errors.TOKEN_0_POTENTIAL_MANIPULATION
         );
-        uint256 spotPrice = (
-                (((reserve1 * 1e18) * (10 ** (18 - token1Decimals))) / reserve0)
-                    / (10 ** (18 - token0Decimals))
+        _require(
+            (token1.balanceOf(address(STRATEGY_UNDERLYING)) * 100) <= (reserve1 * 101),
+            Errors.TOKEN_1_POTENTIAL_MANIPULATION
         );
-        _require(spotPrice * 10000 <= oraclePrice * 50500, Errors.SPOT_TOO_HIGH); // TODO: Max diff.
-        _require(spotPrice * 60606060 >= oraclePrice * 10000, Errors.SPOT_TOO_LOW); // TODO: Max diff.
+        _require(oracleUpdatedAt >= block.timestamp - 1 days, Errors.ORACLE_PRICE_STALE);
+        uint256 spotPrice =
+            ((((reserve1 * 1e18) * (10 ** (18 - token1Decimals))) / reserve0) / (10 ** (18 - token0Decimals)));
+        _require(spotPrice * 10000 <= oraclePrice * 250, Errors.SPOT_TOO_HIGH);
+        _require(spotPrice * 250 >= oraclePrice * 10000, Errors.SPOT_TOO_LOW);
 
         return true;
     }
@@ -375,7 +378,7 @@ contract KingdomWorker is BaseWorker {
     function _addLiquidityOneSided(uint256 _minLiquidity) internal returns (uint256) {
         ISolidlyV1Pair _underlying = ISolidlyV1Pair(address(STRATEGY_UNDERLYING));
         (address token0, address token1) = _underlying.tokens();
-        (uint256 reserve0, uint256 reserve1, ) = _underlying.getReserves();
+        (uint256 reserve0, uint256 reserve1,) = _underlying.getReserves();
         uint256 collatHeld = COLLATERAL.balanceOf(address(this));
 
         token0.safeApprove(address(SOLIDLY_ROUTER), type(uint256).max);
@@ -410,7 +413,7 @@ contract KingdomWorker is BaseWorker {
     function _addLiquidityTwoSided(uint256 _otherIn, uint256 _minLiquidity) internal {
         ISolidlyV1Pair _underlying = ISolidlyV1Pair(address(STRATEGY_UNDERLYING));
         (address token0, address token1) = _underlying.tokens();
-        (uint256 reserve0, uint256 reserve1, ) = _underlying.getReserves();
+        (uint256 reserve0, uint256 reserve1,) = _underlying.getReserves();
         uint256 collatHeld = COLLATERAL.balanceOf(address(this));
 
         LENDING_POOL.accessUserAssets(token0 == address(COLLATERAL) ? token1 : token0, _otherIn);
@@ -419,7 +422,9 @@ contract KingdomWorker is BaseWorker {
 
         // Swap user tokens into the optimal amount for adding liquidity.
         (uint256 cRes, uint256 oRes) = token0 == address(COLLATERAL) ? (reserve0, reserve1) : (reserve1, reserve0);
-        (uint256 toSwap, bool reversed) = SwapUtils._optimalZapAmountIn(collatHeld, _otherIn, cRes, oRes, ISolidlyV1Factory(SOLIDLY_ROUTER.factory()).getFee(STABLE));
+        (uint256 toSwap, bool reversed) = SwapUtils._optimalZapAmountIn(
+            collatHeld, _otherIn, cRes, oRes, ISolidlyV1Factory(SOLIDLY_ROUTER.factory()).getFee(STABLE)
+        );
         if (toSwap > 0) {
             address otherToken = token0 == address(COLLATERAL) ? token1 : token0;
             SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
