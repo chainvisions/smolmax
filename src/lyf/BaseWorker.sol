@@ -9,7 +9,7 @@ import {ControllableNoInit} from "../libraries//ControllableNoInit.sol";
 import {Errors, _require} from "../libraries//Errors.sol";
 import {Cast} from "../libraries/Cast.sol";
 import {IController} from "../interfaces/IController.sol";
-import {ILendingPool} from "../interfaces/ILendingPool.sol";
+import {Position, ILendingPool} from "../interfaces/ILendingPool.sol";
 import {IWarchest} from "../interfaces/IWarchest.sol";
 import {IMinter} from "../interfaces/IMinter.sol";
 import {IWorker} from "../interfaces/IWorker.sol";
@@ -104,8 +104,9 @@ abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGua
         IERC20[] memory rewardTokens = BaseWorkerStorage.layout().rewardTokens;
         _updateRewards(_positionId);
         uint256 nTokens = rewardTokens.length;
+        Position memory pos = LENDING_POOL.positions(_positionId);
         for (uint256 i; i < nTokens;) {
-            _getReward(_positionId, rewardTokens[i]);
+            _getReward(_positionId, pos.owner, rewardTokens[i]);
             // forgefmt: disable-next-line
             unchecked { ++i; }
         }
@@ -116,7 +117,8 @@ abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGua
     /// @param _rewardToken Reward token to claim.
     function getRewardByToken(uint256 _positionId, IERC20 _rewardToken) external defense {
         _updateReward(_positionId, _rewardToken);
-        _getReward(_positionId, _rewardToken);
+        Position memory pos = LENDING_POOL.positions(_positionId);
+        _getReward(_positionId, pos.owner, _rewardToken);
     }
 
     /// @notice Salvages tokens from the strategy contract. One thing that should be noted
@@ -398,17 +400,16 @@ abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGua
         BaseWorkerStorage.layout().rewardTokenData[_rewardToken] = rewardData;
     }
 
-    function _getReward(uint256 _positionId, IERC20 _rewardToken) internal {
+    function _getReward(uint256 _positionId, address _positionOwner, IERC20 _rewardToken) internal {
         uint256 rewards = earned(_rewardToken, _positionId);
         if (rewards > 0) {
             BaseWorkerStorage.layout().rewardsForToken[_rewardToken][_positionId] = 0;
             if (BaseWorkerStorage.layout().rewardTokenData[_rewardToken].lockable) {
-                // TODO: NOT GOOD
-                IController(controller()).mintTokens(msg.sender, rewards);
+                IController(controller()).mintTokens(_positionOwner, rewards);
             } else {
-                address(_rewardToken).safeTransfer(msg.sender, rewards);
+                address(_rewardToken).safeTransfer(_positionOwner, rewards);
             }
-            emit RewardPaid(msg.sender, address(_rewardToken), rewards);
+            emit RewardPaid(_positionOwner, address(_rewardToken), rewards);
         }
     }
 }

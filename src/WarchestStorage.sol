@@ -29,8 +29,7 @@ library WarchestStorage {
         uint32 totalInvestmentNumerator;
     }
 
-    bytes32 internal constant STORAGE_SLOT =
-        keccak256("limestone.contracts.storage.Warchest");
+    bytes32 internal constant STORAGE_SLOT = keccak256("limestone.contracts.storage.Warchest");
 
     function layout() internal pure returns (Layout storage l) {
         bytes32 slot = STORAGE_SLOT;

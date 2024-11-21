@@ -179,6 +179,9 @@ library Errors {
     uint256 internal constant INSUFFICIENT_ASSETS_LENDABLE = 50;
     uint256 internal constant DEBT_TOO_SMALL = 51;
     uint256 internal constant UNHEALTHY_POSITION = 52;
+    uint256 internal constant LIQUIDATIONS_PERMISSIONED = 53;
+    uint256 internal constant NO_DEBT = 54;
+    uint256 internal constant CANT_LIQUIDATE = 55;
 
     // Workers // Rewards
     uint256 internal constant CALLER_NOT_GOV_OR_REWARD_DIST = 31;

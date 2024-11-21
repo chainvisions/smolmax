@@ -21,7 +21,7 @@ import {WarchestStorage} from "./WarchestStorage.sol";
 
 contract Warchest is IWarchest, ControllableNoInit, SolidStateERC20, Initializable {
     using WarchestStorage for WarchestStorage.Layout;
-    using SafeTransferLib for IERC20;
+    using SafeTransferLib for address;
     using Cast for uint256;
 
     /// @notice Lending pool contract.
@@ -42,7 +42,7 @@ contract Warchest is IWarchest, ControllableNoInit, SolidStateERC20, Initializab
     /// @notice Initializes the Warchest contract.
     /// @param _store Storage contract for access control.
     /// @param _underlying Underlying token of the Warchest.
-    function initialize(address _store, IERC20 _underlying) external initializer {
+    function initialize(address _store, address _underlying) external initializer {
         // Initialize receipt token metadata.
         _setName(string.concat("Limestone Interest Bearing ", IERC20Metadata(address(_underlying)).symbol()));
         _setSymbol(string.concat("lib", IERC20Metadata(address(_underlying)).symbol()));
@@ -50,7 +50,7 @@ contract Warchest is IWarchest, ControllableNoInit, SolidStateERC20, Initializab
 
         // Initialize storage.
         _setStore(_store);
-        WarchestStorage.layout().underlying = _underlying;
+        WarchestStorage.layout().underlying = IERC20(_underlying);
 
         // Approve lending pool to utilize assets from Warchest.
         _underlying.safeApprove(address(LENDING_POOL), type(uint256).max);
@@ -71,10 +71,12 @@ contract Warchest is IWarchest, ControllableNoInit, SolidStateERC20, Initializab
     }
 
     /// @notice Withdraws tokens from the Warchest's strategies.
+    /// @param _destination Address to send tokens to.
     /// @param _amountToWithdraw Amount of tokens to withdraw.
-    function withdrawReserves(uint256 _amountToWithdraw) external override onlyLendingPool {
+    function withdrawReserves(address _destination, uint256 _amountToWithdraw) external override onlyLendingPool {
+        _require(WarchestStorage.layout().circuitBreakerActive == false, Errors.CIRCUIT_BREAKER_IS_ACTIVE);
         _withdrawAmountFromStrategies(_amountToWithdraw);
-        WarchestStorage.layout().underlying.transfer(msg.sender, _amountToWithdraw);
+        address(WarchestStorage.layout().underlying).safeTransfer(_destination, _amountToWithdraw);
     }
 
     /// @notice Circuit breaker in the case of an emergency.
@@ -84,7 +86,7 @@ contract Warchest is IWarchest, ControllableNoInit, SolidStateERC20, Initializab
     function emergencyCircuitBreaker() external onlyGovernance {
         // Flip circuit breaker and cut off approvals.
         WarchestStorage.layout().circuitBreakerActive = true;
-        WarchestStorage.layout().underlying.safeApprove(address(LENDING_POOL), 0);
+        address(WarchestStorage.layout().underlying).safeApprove(address(LENDING_POOL), 0);
         emit CircuitBreakerActivated(block.timestamp);
     }
 
@@ -171,7 +173,7 @@ contract Warchest is IWarchest, ControllableNoInit, SolidStateERC20, Initializab
             WarchestStorage.Strategy memory strategy = strategies[i];
             uint256 strategyInvestment = ((amountToInvest * strategy.investmentNumerator) / 10000);
             if (strategyInvestment > 0) {
-                _underlying.safeTransfer(address(strategy.strategyAddress), strategyInvestment);
+                address(_underlying).safeTransfer(address(strategy.strategyAddress), strategyInvestment);
                 emit Invested(address(strategy.strategyAddress), strategyInvestment);
             }
             IStrategy(strategy.strategyAddress).doHardWork();
