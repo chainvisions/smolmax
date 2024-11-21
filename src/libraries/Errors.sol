@@ -194,6 +194,7 @@ library Errors {
     uint256 internal constant REWARD_INDICE_NOT_FOUND = 38;
 
     // Workers // Farming
+    uint256 internal constant CALLER_NOT_KEEPER = 47;
     uint256 internal constant TOKEN_0_POTENTIAL_MANIPULATION = 47;
     uint256 internal constant TOKEN_1_POTENTIAL_MANIPULATION = 48;
     uint256 internal constant ORACLE_PRICE_STALE = 49;

@@ -162,6 +162,7 @@ contract ObeliskWorker is BaseWorker {
 
     /// @notice Harvests and reinvests yields into more tokens.
     function reinvest() external override defense nonReentrant {
+        _require(LENDING_POOL.authorizedKeepers(msg.sender), Errors.CALLER_NOT_KEEPER);
         IObeliskGenesisRewardPool(BaseWorkerStorage.layout().rewardPool).deposit(OBELISK_PID, 0);
         _liquidateReward();
         _investAllUnderlying();

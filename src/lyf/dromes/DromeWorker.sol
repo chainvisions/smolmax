@@ -156,6 +156,7 @@ contract DromeWorker is BaseWorker {
 
     /// @notice Harvests and reinvests yields into more tokens.
     function reinvest() external override defense nonReentrant {
+        _require(LENDING_POOL.authorizedKeepers(msg.sender), Errors.CALLER_NOT_KEEPER);
         IDromeGauge(BaseWorkerStorage.layout().rewardPool).getReward(address(this));
         _liquidateReward();
         _investAllUnderlying();
