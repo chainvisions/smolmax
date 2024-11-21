@@ -2,9 +2,9 @@
 pragma solidity 0.8.28;
 
 import {IERC20Metadata} from "@solidstate/token/ERC20/metadata/IERC20Metadata.sol";
-import {ISolidlyRouter01} from "../../interfaces/swaps/ISolidlyRouter01.sol";
-import {ISolidlyV1Factory} from "../../interfaces/swaps/ISolidlyV1Factory.sol";
-import {ISolidlyV1Pair} from "../../interfaces/swaps/ISolidlyV1Pair.sol";
+import {IDromeRouter} from "../../interfaces/swaps/IDromeRouter.sol";
+import {IDromeFactory} from "../../interfaces/swaps/IDromeFactory.sol";
+import {IDromePool} from "../../interfaces/swaps/IDromePool.sol";
 import {ILimestoneOracle} from "../../interfaces/ILimestoneOracle.sol";
 import {SwapUtils} from "../../libraries/SwapUtils.sol";
 import {
@@ -20,11 +20,11 @@ import {
     _require,
     SafeTransferLib
 } from "../BaseWorker.sol";
-import {IRamsesLegacyGauge} from "./interfaces/IRamsesLegacyGauge.sol";
+import {IDromeGauge} from "./interfaces/IDromeGauge.sol";
 
-/// @title Kingdom Worker Contract.
+/// @title Drome Worker Contract.
 /// @author Chainvisions
-/// @notice Limestone worker for Kingdom Legacy LPs.
+/// @notice Limestone worker for -drome LPs.
 
 contract KingdomWorker is BaseWorker {
     using SafeTransferLib for address;
@@ -40,7 +40,6 @@ contract KingdomWorker is BaseWorker {
     // Structure for storing token liquidation routes.
     struct SwapConfiguration {
         bool swapLess;
-        bool singlePair;
         bool stableswap;
     }
 
@@ -48,13 +47,13 @@ contract KingdomWorker is BaseWorker {
     bool public immutable STABLE;
 
     /// @notice Router contract for Solidly.
-    ISolidlyRouter01 public immutable SOLIDLY_ROUTER; 
+    IDromeRouter public immutable SOLIDLY_ROUTER;
 
     /// @notice Configuration for a specific Solidly swap.
     mapping(address => mapping(address => SwapConfiguration)) public swapConfig;
 
     /// @notice Routes for liquidation on Solidly.
-    mapping(address => mapping(address => ISolidlyRouter01.Route[])) public routes;
+    mapping(address => mapping(address => IDromeRouter.Route[])) public routes;
 
     /// @notice Worker constructor.
     /// @param _poolId ID of the associated lending pool.
@@ -76,7 +75,7 @@ contract KingdomWorker is BaseWorker {
         address _router
     ) BaseWorker(_poolId, _collateral, _lendingPool, _strategyUnderlying, _limeToken, _minter) {
         STABLE = _stable;
-        SOLIDLY_ROUTER = ISolidlyRouter01(_router);
+        SOLIDLY_ROUTER = IDromeRouter(_router);
     }
 
     /// @notice Initializes the worker contract.
@@ -120,8 +119,7 @@ contract KingdomWorker is BaseWorker {
     /// @param _id ID of the position to liquidate.
     function liquidate(uint256 _id) external override onlyLendingPool nonReentrant {
         uint256 balance = _removeShare(_id);
-        address token0 = ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).token0();
-        address token1 = ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).token1();
+        (address token0, address token1) = IDromePool(address(STRATEGY_UNDERLYING)).tokens();
 
         token0.safeApprove(address(SOLIDLY_ROUTER), type(uint256).max);
         token1.safeApprove(address(SOLIDLY_ROUTER), type(uint256).max);
@@ -135,27 +133,15 @@ contract KingdomWorker is BaseWorker {
         SwapConfiguration memory token0Route = swapConfig[token0][address(COLLATERAL)];
         SwapConfiguration memory token1Route = swapConfig[token0][address(COLLATERAL)];
         if (!token0Route.swapLess) {
-            if (token0Route.singlePair) {
-                SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
-                    amountA, 0, token0, address(COLLATERAL), token0Route.stableswap, address(this), block.timestamp
-                );
-            } else {
-                SOLIDLY_ROUTER.swapExactTokensForTokens(
-                    amountA, 0, routes[token0][address(COLLATERAL)], address(this), block.timestamp
-                );
-            }
+            SOLIDLY_ROUTER.swapExactTokensForTokens(
+                amountA, 0, routes[token0][address(COLLATERAL)], address(this), block.timestamp
+            );
         }
 
         if (!token1Route.swapLess) {
-            if (token1Route.singlePair) {
-                SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
-                    amountB, 0, token1, address(COLLATERAL), token1Route.stableswap, address(this), block.timestamp
-                );
-            } else {
-                SOLIDLY_ROUTER.swapExactTokensForTokens(
-                    amountB, 0, routes[token1][address(COLLATERAL)], address(this), block.timestamp
-                );
-            }
+            SOLIDLY_ROUTER.swapExactTokensForTokens(
+                amountB, 0, routes[token1][address(COLLATERAL)], address(this), block.timestamp
+            );
         }
 
         token0.safeApprove(address(SOLIDLY_ROUTER), 0);
@@ -170,9 +156,7 @@ contract KingdomWorker is BaseWorker {
 
     /// @notice Harvests and reinvests yields into more tokens.
     function reinvest() external override defense nonReentrant {
-        IRamsesLegacyGauge(BaseWorkerStorage.layout().rewardPool).getReward(
-            address(this), BaseWorkerStorage.layout().strategyRewards
-        );
+        IDromeGauge(BaseWorkerStorage.layout().rewardPool).getReward(address(this));
         _liquidateReward();
         _investAllUnderlying();
     }
@@ -180,20 +164,23 @@ contract KingdomWorker is BaseWorker {
     /// @notice Gauges the current health of the worker to ensure no manipulation is happening.
     /// @return Whether or not the underlying pool is healthy and able to accept debt.
     function healthcheck() external view override returns (bool) {
-        (address token0, address token1) = ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).tokens();
-        (uint8 token0Decimals, uint8 token1Decimals) = (IERC20Metadata(token0).decimals(), IERC20Metadata(token1).decimals());
-        (uint256 oraclePrice, uint32 oracleUpdatedAt) = ILimestoneOracle(address(LENDING_POOL)).getPriceForToken(token0, token1);
-        (uint256 reserve0, uint256 reserve1,) = ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).getReserves();
-        _require((token0.balanceOf(address(STRATEGY_UNDERLYING)) * 100) <= (reserve0 * 101), Errors.TOKEN_0_POTENTIAL_MANIPULATION);
-        _require((token1.balanceOf(address(STRATEGY_UNDERLYING)) * 100) <= (reserve1 * 101), Errors.TOKEN_1_POTENTIAL_MANIPULATION);
+        (address token0, address token1) = IDromePool(address(STRATEGY_UNDERLYING)).tokens();
+        (uint8 token0Decimals, uint8 token1Decimals) =
+            (IERC20Metadata(token0).decimals(), IERC20Metadata(token1).decimals());
+        (uint256 oraclePrice, uint32 oracleUpdatedAt) =
+            ILimestoneOracle(address(LENDING_POOL)).getPriceForToken(token0, token1);
+        (uint256 reserve0, uint256 reserve1,) = IDromePool(address(STRATEGY_UNDERLYING)).getReserves();
         _require(
-            oracleUpdatedAt >= block.timestamp - 1 days,
-            Errors.ORACLE_PRICE_STALE
+            (token0.balanceOf(address(STRATEGY_UNDERLYING)) * 100) <= (reserve0 * 101),
+            Errors.TOKEN_0_POTENTIAL_MANIPULATION
         );
-        uint256 spotPrice = (
-                (((reserve1 * 1e18) * (10 ** (18 - token1Decimals))) / reserve0)
-                    / (10 ** (18 - token0Decimals))
+        _require(
+            (token1.balanceOf(address(STRATEGY_UNDERLYING)) * 100) <= (reserve1 * 101),
+            Errors.TOKEN_1_POTENTIAL_MANIPULATION
         );
+        _require(oracleUpdatedAt >= block.timestamp - 1 days, Errors.ORACLE_PRICE_STALE);
+        uint256 spotPrice =
+            ((((reserve1 * 1e18) * (10 ** (18 - token1Decimals))) / reserve0) / (10 ** (18 - token0Decimals)));
         _require(spotPrice * 10000 <= oraclePrice * 50500, Errors.SPOT_TOO_HIGH); // TODO: Max diff.
         _require(spotPrice * 60606060 >= oraclePrice * 10000, Errors.SPOT_TOO_LOW); // TODO: Max diff.
 
@@ -204,7 +191,7 @@ contract KingdomWorker is BaseWorker {
     /// @param _id ID of the position to calculate using.
     /// @return How many tokens can be liquidated from the position.
     function health(uint256 _id) external view override returns (uint256) {
-        ISolidlyV1Pair _underlying = ISolidlyV1Pair(address(STRATEGY_UNDERLYING));
+        IDromePool _underlying = IDromePool(address(STRATEGY_UNDERLYING));
         IERC20 token0 = IERC20(_underlying.token0());
         IERC20 token1 = IERC20(_underlying.token1());
 
@@ -226,7 +213,7 @@ contract KingdomWorker is BaseWorker {
     function shareToBalance(uint256 _shares) public view override returns (uint256) {
         uint256 _totalShares = BaseWorkerStorage.layout().totalShares;
         if (_totalShares == 0) return _shares;
-        uint256 staked = IRamsesLegacyGauge(BaseWorkerStorage.layout().rewardPool).balanceOf(address(this));
+        uint256 staked = IDromeGauge(BaseWorkerStorage.layout().rewardPool).balanceOf(address(this));
         return (_shares * staked) / _totalShares;
     }
 
@@ -236,7 +223,7 @@ contract KingdomWorker is BaseWorker {
     function balanceToShare(uint256 _balance) public view override returns (uint256) {
         uint256 _totalShares = BaseWorkerStorage.layout().totalShares;
         if (_totalShares == 0) return _balance;
-        uint256 staked = IRamsesLegacyGauge(BaseWorkerStorage.layout().rewardPool).balanceOf(address(this));
+        uint256 staked = IDromeGauge(BaseWorkerStorage.layout().rewardPool).balanceOf(address(this));
         return (_balance * _totalShares) / staked;
     }
 
@@ -248,21 +235,18 @@ contract KingdomWorker is BaseWorker {
     }
 
     function _investAllUnderlying() internal {
-        IRamsesLegacyGauge stakingRewards = IRamsesLegacyGauge(BaseWorkerStorage.layout().rewardPool);
+        IDromeGauge stakingRewards = IDromeGauge(BaseWorkerStorage.layout().rewardPool);
         uint256 underlyingBalance = STRATEGY_UNDERLYING.balanceOf(address(this));
         if (underlyingBalance > 0) {
             address(STRATEGY_UNDERLYING).safeApprove(address(stakingRewards), 0);
             address(STRATEGY_UNDERLYING).safeApprove(address(stakingRewards), underlyingBalance);
-            stakingRewards.deposit(underlyingBalance, 0);
+            stakingRewards.deposit(underlyingBalance);
         }
     }
 
     function _handleLiquidation(uint256[] memory _balances) internal override {
         Pair memory pair = Pair(
-            ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).token0(),
-            ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).token1(),
-            1,
-            1
+            IDromePool(address(STRATEGY_UNDERLYING)).token0(), IDromePool(address(STRATEGY_UNDERLYING)).token1(), 1, 1
         );
 
         address[] memory rewards = BaseWorkerStorage.layout().strategyRewards;
@@ -285,45 +269,19 @@ contract KingdomWorker is BaseWorker {
             reward.safeApprove(address(SOLIDLY_ROUTER), rewardBalance);
 
             if (!token0Route.swapLess) {
-                if (token0Route.singlePair) {
-                    uint256[] memory amounts = SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
-                        pair.toToken0,
-                        0,
-                        reward,
-                        pair.token0,
-                        token0Route.stableswap,
-                        address(this),
-                        block.timestamp + 600
-                    );
-                    token0Amount = amounts[amounts.length - 1];
-                } else {
-                    uint256[] memory amounts = SOLIDLY_ROUTER.swapExactTokensForTokens(
-                        pair.toToken0, 0, routes[reward][pair.token0], address(this), block.timestamp + 600
-                    );
-                    token0Amount = amounts[amounts.length - 1];
-                }
+                uint256[] memory amounts = SOLIDLY_ROUTER.swapExactTokensForTokens(
+                    pair.toToken0, 0, routes[reward][pair.token0], address(this), block.timestamp + 600
+                );
+                token0Amount = amounts[amounts.length - 1];
             } else {
                 token0Amount = pair.toToken0;
             }
 
             if (!token1Route.swapLess) {
-                if (token1Route.singlePair) {
-                    uint256[] memory amounts = SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
-                        pair.toToken1,
-                        0,
-                        reward,
-                        pair.token1,
-                        token1Route.stableswap,
-                        address(this),
-                        block.timestamp + 600
-                    );
-                    token1Amount = amounts[amounts.length - 1];
-                } else {
-                    uint256[] memory amounts = SOLIDLY_ROUTER.swapExactTokensForTokens(
-                        pair.toToken1, 0, routes[reward][pair.token1], address(this), block.timestamp + 600
-                    );
-                    token1Amount = amounts[amounts.length - 1];
-                }
+                uint256[] memory amounts = SOLIDLY_ROUTER.swapExactTokensForTokens(
+                    pair.toToken1, 0, routes[reward][pair.token1], address(this), block.timestamp + 600
+                );
+                token1Amount = amounts[amounts.length - 1];
             } else {
                 token1Amount = pair.toToken1;
             }
@@ -353,7 +311,7 @@ contract KingdomWorker is BaseWorker {
         uint256 balance = STRATEGY_UNDERLYING.balanceOf(address(this));
         if (balance > 0) {
             uint256 share = balanceToShare(balance);
-            IRamsesLegacyGauge(BaseWorkerStorage.layout().rewardPool).deposit(0, balance);
+            IDromeGauge(BaseWorkerStorage.layout().rewardPool).deposit(balance);
             BaseWorkerStorage.layout().sharesOf[_id] = (BaseWorkerStorage.layout().sharesOf[_id] + share);
             BaseWorkerStorage.layout().totalShares = (BaseWorkerStorage.layout().totalShares + share);
             emit AddShare(_id, share);
@@ -365,7 +323,7 @@ contract KingdomWorker is BaseWorker {
         uint256 share = BaseWorkerStorage.layout().sharesOf[_id];
         if (share > 0) {
             balance = shareToBalance(share);
-            IRamsesLegacyGauge(BaseWorkerStorage.layout().rewardPool).withdraw(balance);
+            IDromeGauge(BaseWorkerStorage.layout().rewardPool).withdraw(balance);
             BaseWorkerStorage.layout().totalShares = (BaseWorkerStorage.layout().totalShares - share);
             BaseWorkerStorage.layout().sharesOf[_id] = 0;
             emit RemoveShare(_id, share);
@@ -373,23 +331,22 @@ contract KingdomWorker is BaseWorker {
     }
 
     function _addLiquidityOneSided(uint256 _minLiquidity) internal returns (uint256) {
-        ISolidlyV1Pair _underlying = ISolidlyV1Pair(address(STRATEGY_UNDERLYING));
+        IDromePool _underlying = IDromePool(address(STRATEGY_UNDERLYING));
         (address token0, address token1) = _underlying.tokens();
-        (uint256 reserve0, uint256 reserve1, ) = _underlying.getReserves();
+        (uint256 reserve0, uint256 reserve1,) = _underlying.getReserves();
         uint256 collatHeld = COLLATERAL.balanceOf(address(this));
 
         token0.safeApprove(address(SOLIDLY_ROUTER), type(uint256).max);
         token1.safeApprove(address(SOLIDLY_ROUTER), type(uint256).max);
 
         uint256 cRes = token0 == address(COLLATERAL) ? reserve0 : reserve1;
-        uint256 optimalSwapAmount =
-            SwapUtils._optimalAmountIn(ISolidlyV1Factory(SOLIDLY_ROUTER.factory()).getFee(STABLE), cRes, collatHeld);
-        uint256[] memory amounts = SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
+        uint256 optimalSwapAmount = SwapUtils._optimalAmountIn(
+            IDromeFactory(SOLIDLY_ROUTER.defaultFactory()).getFee(address(_underlying), STABLE), cRes, collatHeld
+        );
+        uint256[] memory amounts = SOLIDLY_ROUTER.swapExactTokensForTokens(
             optimalSwapAmount,
             0,
-            address(COLLATERAL),
-            token0 == address(COLLATERAL) ? address(token1) : address(token0),
-            STABLE,
+            routes[address(COLLATERAL)][token0 == address(COLLATERAL) ? token1 : token0],
             address(this),
             block.timestamp
         );
@@ -398,7 +355,7 @@ contract KingdomWorker is BaseWorker {
         reserve0 = token0 == address(COLLATERAL) ? collatHeld - optimalSwapAmount : amounts[amounts.length - 1];
         reserve1 = token1 == address(COLLATERAL) ? collatHeld - optimalSwapAmount : amounts[amounts.length - 1];
 
-        uint256 minted = SOLIDLY_ROUTER.addLiquidity(
+        (,, uint256 minted) = SOLIDLY_ROUTER.addLiquidity(
             address(token0), address(token1), STABLE, reserve0, reserve1, 0, 0, address(this), block.timestamp
         );
         _require(minted >= _minLiquidity, Errors.TOO_MUCH_SLIPPAGE);
@@ -408,9 +365,9 @@ contract KingdomWorker is BaseWorker {
     }
 
     function _addLiquidityTwoSided(uint256 _otherIn, uint256 _minLiquidity) internal {
-        ISolidlyV1Pair _underlying = ISolidlyV1Pair(address(STRATEGY_UNDERLYING));
+        IDromePool _underlying = IDromePool(address(STRATEGY_UNDERLYING));
         (address token0, address token1) = _underlying.tokens();
-        (uint256 reserve0, uint256 reserve1, ) = _underlying.getReserves();
+        (uint256 reserve0, uint256 reserve1,) = _underlying.getReserves();
         uint256 collatHeld = COLLATERAL.balanceOf(address(this));
 
         LENDING_POOL.accessUserAssets(token0 == address(COLLATERAL) ? token1 : token0, _otherIn);
@@ -419,21 +376,25 @@ contract KingdomWorker is BaseWorker {
 
         // Swap user tokens into the optimal amount for adding liquidity.
         (uint256 cRes, uint256 oRes) = token0 == address(COLLATERAL) ? (reserve0, reserve1) : (reserve1, reserve0);
-        (uint256 toSwap, bool reversed) = SwapUtils._optimalZapAmountIn(collatHeld, _otherIn, cRes, oRes, ISolidlyV1Factory(SOLIDLY_ROUTER.factory()).getFee(STABLE));
+        (uint256 toSwap, bool reversed) = SwapUtils._optimalZapAmountIn(
+            collatHeld,
+            _otherIn,
+            cRes,
+            oRes,
+            IDromeFactory(SOLIDLY_ROUTER.defaultFactory()).getFee(address(_underlying), STABLE)
+        );
         if (toSwap > 0) {
             address otherToken = token0 == address(COLLATERAL) ? token1 : token0;
-            SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
+            SOLIDLY_ROUTER.swapExactTokensForTokens(
                 toSwap,
                 0,
-                reversed ? otherToken : address(COLLATERAL),
-                reversed ? address(COLLATERAL) : otherToken,
-                STABLE,
+                reversed ? routes[otherToken][address(COLLATERAL)] : routes[address(COLLATERAL)][otherToken],
                 address(this),
                 block.timestamp
             );
         }
 
-        uint256 minted = SOLIDLY_ROUTER.addLiquidity(
+        (,, uint256 minted) = SOLIDLY_ROUTER.addLiquidity(
             address(token0),
             address(token1),
             STABLE,
@@ -451,8 +412,8 @@ contract KingdomWorker is BaseWorker {
     }
 
     function _removeLiquidity(uint256 _toRemove, address _user, uint256 _debt) internal {
-        address token0 = ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).token0();
-        address token1 = ISolidlyV1Pair(address(STRATEGY_UNDERLYING)).token1();
+        address token0 = IDromePool(address(STRATEGY_UNDERLYING)).token0();
+        address token1 = IDromePool(address(STRATEGY_UNDERLYING)).token1();
 
         // Create allowances.
         token0.safeApprove(address(SOLIDLY_ROUTER), type(uint256).max);
@@ -467,27 +428,15 @@ contract KingdomWorker is BaseWorker {
         SwapConfiguration memory token0Route = swapConfig[token0][address(COLLATERAL)];
         SwapConfiguration memory token1Route = swapConfig[token0][address(COLLATERAL)];
         if (!token0Route.swapLess) {
-            if (token0Route.singlePair) {
-                SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
-                    amountA, 0, token0, address(COLLATERAL), token0Route.stableswap, address(this), block.timestamp
-                );
-            } else {
-                SOLIDLY_ROUTER.swapExactTokensForTokens(
-                    amountA, 0, routes[token0][address(COLLATERAL)], address(this), block.timestamp
-                );
-            }
+            SOLIDLY_ROUTER.swapExactTokensForTokens(
+                amountA, 0, routes[token0][address(COLLATERAL)], address(this), block.timestamp
+            );
         }
 
         if (!token1Route.swapLess) {
-            if (token1Route.singlePair) {
-                SOLIDLY_ROUTER.swapExactTokensForTokensSimple(
-                    amountB, 0, token1, address(COLLATERAL), token1Route.stableswap, address(this), block.timestamp
-                );
-            } else {
-                SOLIDLY_ROUTER.swapExactTokensForTokens(
-                    amountB, 0, routes[token1][address(COLLATERAL)], address(this), block.timestamp
-                );
-            }
+            SOLIDLY_ROUTER.swapExactTokensForTokens(
+                amountB, 0, routes[token1][address(COLLATERAL)], address(this), block.timestamp
+            );
         }
 
         // Transfer collateral to the user and clear allowances.
@@ -497,3 +446,4 @@ contract KingdomWorker is BaseWorker {
         address(STRATEGY_UNDERLYING).safeApprove(address(SOLIDLY_ROUTER), 0);
     }
 }
+

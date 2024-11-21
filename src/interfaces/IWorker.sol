@@ -12,6 +12,8 @@ interface IWorker {
     /// @param _id ID of the position to fetch the health of.
     function health(uint256 _id) external view returns (uint256);
 
+    function healthcheck() external view returns (bool);
+
     /// @notice Liquidates a position and converts into collateral.
     /// @param _id ID of the position liquidated.
     function liquidate(uint256 _id) external;

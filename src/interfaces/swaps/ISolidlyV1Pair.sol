@@ -22,8 +22,12 @@ interface ISolidlyV1Pair {
         view
         returns (uint256 timestamp, uint256 reserve0Cumulative, uint256 reserve1Cumulative);
 
+    function getAmountOut(uint256, address) external view returns (uint256);
+
     function token0() external view returns (address);
     function token1() external view returns (address);
 
     function tokens() external view returns (address, address);
+
+    function totalSupply() external view returns (uint256);
 }

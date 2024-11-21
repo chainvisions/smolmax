@@ -26,8 +26,9 @@ interface IWarchest {
     function burn(address _from, uint256 _amount) external;
 
     /// @notice Withdraws tokens from the Warchest's strategies.
+    /// @param _destination Address to send tokens to.
     /// @param _amountToWithdraw Amount of tokens to withdraw.
-    function withdrawReserves(uint256 _amountToWithdraw) external;
+    function withdrawReserves(address _destination, uint256 _amountToWithdraw) external;
 
     /// @notice Calculates the total amount of assets held by the Warchest.
     /// @return Warchest's funds included ones currently invested in strategies.

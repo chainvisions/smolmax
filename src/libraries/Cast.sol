@@ -30,6 +30,14 @@ library Cast {
         return uint32(_from);
     }
 
+    /// @notice Casts a `uint256` into a `uint64`.
+    /// @param _from `uint256` value to cast from.
+    /// @return End `uint64` value from casting.
+    function u64(uint256 _from) internal pure returns (uint64) {
+        require(_from < 1 << 64);
+        return uint64(_from);
+    }
+
     /// @notice Casts a `uint256` into a `uint112`.
     /// @param _from `uint256` value to cast from.
     /// @return End `uint112` value from casting.

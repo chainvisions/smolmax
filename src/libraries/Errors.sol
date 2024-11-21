@@ -162,10 +162,35 @@ library Errors {
     // Warchest
     uint256 internal constant CALLER_NOT_LENDING_POOL = 39;
     uint256 internal constant CIRCUIT_BREAKER_NOT_ACTIVE = 40;
+    uint256 internal constant CIRCUIT_BREAKER_IS_ACTIVE = 41;
+    uint256 internal constant VAULT_HAS_NO_SHARES = 42;
+    uint256 internal constant SHARES_MUST_NOT_BE_ZERO = 43;
 
     // Lending Pool
+    uint256 internal constant CALLER_NOT_EOA = 41;
+    uint256 internal constant NOT_WORKER_IN_EXEC = 42;
+    uint256 internal constant NOT_POSITION_IN_EXEC = 43;
+    uint256 internal constant EXEC_IN_PROGRESS = 44;
+    uint256 internal constant MALFORMED_POS_ID = 45;
+    uint256 internal constant NOT_POS_WORKER = 46;
+    uint256 internal constant NOT_POS_OWNER = 47;
+    uint256 internal constant WORKER_NOT_AUTHORIZED = 48;
+    uint256 internal constant NOT_ACCEPTING_DEBT = 49;
+    uint256 internal constant INSUFFICIENT_ASSETS_LENDABLE = 50;
+    uint256 internal constant DEBT_TOO_SMALL = 51;
+    uint256 internal constant UNHEALTHY_POSITION = 52;
 
-    // Workers
+    // Workers // Rewards
+    uint256 internal constant CALLER_NOT_GOV_OR_REWARD_DIST = 31;
+    uint256 internal constant REWARD_TOKEN_ALREADY_EXIST = 32;
+    uint256 internal constant DURATION_CANNOT_BE_ZERO = 33;
+    uint256 internal constant REWARD_TOKEN_DOES_NOT_EXIST = 34;
+    uint256 internal constant REWARD_PERIOD_HAS_NOT_ENDED = 35;
+    uint256 internal constant CANNOT_REMOVE_LAST_REWARD_TOKEN = 36;
+    uint256 internal constant NOTIF_AMOUNT_INVOKES_OVERFLOW = 37;
+    uint256 internal constant REWARD_INDICE_NOT_FOUND = 38;
+
+    // Workers // Farming
     uint256 internal constant TOKEN_0_POTENTIAL_MANIPULATION = 47;
     uint256 internal constant TOKEN_1_POTENTIAL_MANIPULATION = 48;
     uint256 internal constant ORACLE_PRICE_STALE = 49;

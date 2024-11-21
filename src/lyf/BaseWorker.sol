@@ -13,7 +13,7 @@ import {ILendingPool} from "../interfaces/ILendingPool.sol";
 import {IWarchest} from "../interfaces/IWarchest.sol";
 import {IMinter} from "../interfaces/IMinter.sol";
 import {IWorker} from "../interfaces/IWorker.sol";
-import {IERC20, BaseWorkerStorage, WorkerOperation, RewardToken} from "./BaseWorkerStorage.sol";
+import {IERC20, BaseWorkerStorage, WorkerOperation, OperationKind, RewardToken} from "./BaseWorkerStorage.sol";
 
 /// @title Limestone Base Worker
 /// @author Chainvisions
@@ -21,7 +21,7 @@ import {IERC20, BaseWorkerStorage, WorkerOperation, RewardToken} from "./BaseWor
 
 abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGuard, IWorker {
     using Cast for uint256;
-    using SafeTransferLib for IERC20;
+    using SafeTransferLib for address;
 
     /// @notice Collateral token contract.
     IERC20 public immutable COLLATERAL;
@@ -50,7 +50,7 @@ abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGua
     /// @notice Prevents smart contracts from interacting if they are not whitelisted.
     /// This system is part of our security model as a method of preventing flashloan exploits.
     modifier defense() {
-        _require(msg.sender == tx.origin, Errors.CALLER_NOT_WHITELISTED);
+        _require(msg.sender == tx.origin, Errors.CALLER_NOT_EOA);
         _;
     }
 
@@ -103,7 +103,8 @@ abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGua
     function getReward(uint256 _positionId) external defense {
         IERC20[] memory rewardTokens = BaseWorkerStorage.layout().rewardTokens;
         _updateRewards(_positionId);
-        for (uint256 i; i < rewardTokens.length;) {
+        uint256 nTokens = rewardTokens.length;
+        for (uint256 i; i < nTokens;) {
             _getReward(_positionId, rewardTokens[i]);
             // forgefmt: disable-next-line
             unchecked { ++i; }
@@ -157,7 +158,7 @@ abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGua
     function notifyRewardAmount(IERC20 _rewardToken, uint256 _amount) public {
         _require(
             msg.sender == governance() || BaseWorkerStorage.layout().rewardDistribution[msg.sender],
-            Errors.CALLER_NOT_GOV_OR_REWARD_DIST
+            Errors.CALL_RESTRICTED
         );
         _notifyRewards(_rewardToken, _amount);
     }
@@ -307,8 +308,8 @@ abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGua
         if (_rewardBalance > 0) {
             uint256 feeAmount =
                 (_rewardBalance * _controller.profitSharingNumerator()) / _controller.profitSharingDenominator();
-            _reward.safeApprove(address(MINTER), 0);
-            _reward.safeApprove(address(MINTER), feeAmount);
+            address(_reward).safeApprove(address(MINTER), 0);
+            address(_reward).safeApprove(address(MINTER), feeAmount);
 
             uint256 toMint = MINTER.realizeProfit(address(_reward), feeAmount);
             _notifyRewards(LIME_TOKEN, toMint);
@@ -405,7 +406,7 @@ abstract contract BaseWorker is ControllableNoInit, Initializable, ReentrancyGua
                 // TODO: NOT GOOD
                 IController(controller()).mintTokens(msg.sender, rewards);
             } else {
-                IERC20(_rewardToken).safeTransfer(msg.sender, rewards);
+                address(_rewardToken).safeTransfer(msg.sender, rewards);
             }
             emit RewardPaid(msg.sender, address(_rewardToken), rewards);
         }

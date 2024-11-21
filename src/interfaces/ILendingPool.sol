@@ -28,8 +28,7 @@ interface ILendingPool {
     function withdraw(uint256 _poolId, uint256 _amount) external;
 
     /// @notice Used by workers to access any additional approved assets from a specific user. Used for two sided liquidity provision.
-    /// @param _user User to request assets from.
     /// @param _token Token to request from user.
     /// @param _requestedAmount Amount requested to transfer from the user.
-    function accessUserAssets(address _user, address _token, uint256 _requestedAmount) external;
+    function accessUserAssets(address _token, uint256 _requestedAmount) external;
 }
